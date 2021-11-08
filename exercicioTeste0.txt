@@ -1,0 +1,17 @@
+Tempo de Execução da CPU  = (numero de instruções x CPI) / taxa de clock
+para um programa
+
+ALU   1100 milhoes de instruções    1 ciclo por instrução (1 CPI)
+Mem    900 milhões de instruções    ? (X CPI)
+Ctrl   500 milhões de intruções     2 ciclos por instrução (2 CPIs)
+
+frequencia de clock do processador: 100 MHz
+
+Tempo para executar todo o programa = 75 segundos (tempo de CPU - tempo que a CPU levou para 
+                                                                  processar o programa) 
+
+
+               75 = ( (1100 x 1) + (900 x c) + (500 x 2) )/ 100
+               7500 = 2100 + (900 x c)
+               5400 = 900 x c
+               c = 6

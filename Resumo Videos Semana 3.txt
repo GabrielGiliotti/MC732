@@ -1,0 +1,406 @@
+A partir da semana 3: Conjutno de instruções
+
+V1
+
+ - RISC vc CISC : Mais instruções e instruções mais complexas 
+                  ou Menos instruções e intruções mais simples
+
+ - Necessário para ser turing complete: operação aritmeticas
+   e algum comando de branch (condicional)
+
+(OISC - One Instruction Computer)
+  - é possivel ser turing complete
+  - usa acesso a memoria
+  - Subtração com branch
+  - Não é muito eficiente
+
+- O que é uma instrução complexa: a = b x c onde a, b e c estão
+  armazenados em memória
+
+- Diferença fundamental entre RISC e CISC: modos de endereçamento
+  suportados
+
+  - No RISC todos os valores para operações devem vir de 
+    registradores ou imediatos
+
+  - No CISC os valores podem estar em memória
+  - Intel é CISC
+  
+  - RISC veio para melhorar instruções
+    - instruções mais regulares (tamanho fixo de palavras)
+
+  RISC-V (RISC-FIVE) - é o sucessor do MIPS
+
+  Operações aritmeticas (todas tem o mesmo formato)
+    - Add e subtract
+      add a, b, c --> a = b + c
+          a, b e c devem ser registradores ou imediatos
+ 
+  * Principio de design 1: simplicidade favorece regularidade
+    - Implementação mais simples
+    - maior performance com menor custo
+
+    add t0, g, h
+    add t1, i, j
+    sub f, t0, t1
+
+  - RISC-V tem 32 registradores de 64 bits cada
+    - uma "palavra" são 32 bits
+    - uma "palavra dupla" são 64 bits
+
+  * Principio de Design 2: menor é mais rapido
+    
+  Registradores (São uma convenção)  
+
+  - register x0: valor constante 0
+  - x1: endereço de retorno
+  - x2: apontador para pilha
+  - x3: apontador global
+  - x4: apontador de thread
+  - x8: apontador de frame
+  - x9, x18 à x27: registradores salvos
+    - usados para salvar dados entre funções
+  - x5 à x7, x28 à x31: registradores temporarios
+  - x10 e x11: argumentos de funções e retorno de funções
+  - x12 à x17: argumentos de funções
+
+  Compilado em RISC-V code:
+    add x5, x20, x12
+    add x6, x22, x23
+    sub x19, x5, x6
+
+    - pra codar vamos usar os apelidos dos registradores, t0, 
+      t1, s0, s1, etc
+
+  Memory Operands
+  Dados ficam na memoria principal (Arrays, structures, dynamic data)
+    - loader carrega dados da memoria para os registradores
+    - realiza as operações
+    - armazenar os resultados de volta na memoria
+  
+  - Memoria é endereçada em bytes (8 bits)
+  - RISC-V é Little Endian
+    - O byte menos significativo no menor endereço   
+        Ex: 0x 01 23 45 67 
+        Mais significativo: 0x01
+        Menos significativo: 0x67
+
+        Big Endian:
+
+        Addr      0x0000    0x0001    0x0002    0x0003
+        0x0000     0x01      0x23      0x45      0x67
+        0x0004
+        0x0008 
+
+        Little Endian:
+
+        Addr      0x0000    0x0001    0x0002    0x0003
+        0x0000     0x67      0x45      0x23      0x01
+        0x0004
+        0x0008 
+
+        Vantagem do little endian:
+          - palavras menores sao acessadas mais rapido
+          - convenção: não impacta tanto desempenho
+
+        int x = 3
+        int y = 5
+
+        addr 0x1000   3       0         0        0    
+        adrr 0x1004   5       0         0        0
+
+
+  - RISC-V nao precisa ter palavras alinhadas em memoria
+    
+  Memory Operands
+
+  Ex: A[12] = h + A[8] (codigo em C)
+
+      - h está em x21
+      - endereço base de A está em x22
+
+       ld x9, 64(x22) --> Carrega A[8] em x9 da memoria
+      add x9, x21, x9 --> Soma em h o valor carregado
+       sd x9, 96(x22) --> armazena resultado da soma na memoria 
+
+       - Perceba que 8 de A[8] é dado por 64(x22)
+         - tomamos o ponteiro para base do vetor x22
+         - somamos 64 para chegar na posição 8
+         - é 64 porque utilizamos double word (8 bytes)
+           e para deslocarmos 8 posições precisamos andar
+           8 bytes = 64 bits 
+         - Lembrar: cada posição do vetor tem 8 bytes
+
+       - e que 12 de A[12] é dado por 96(__)
+         - multiplicamos por 8 a posição do endereço
+
+  - operações em Registradores são mais rapidos que memoria
+  - operar em memoria exige load e store
+  - otimização dos registradores é necessária
+
+  Immediate Operands
+
+  addi x22, x22, 4
+  - Dependendo do que esta armazenado em uma doble word
+    resta espaço no registrador onde podemos armazenar
+    constantes pequenas, evitando loads e stores
+
+  - No caso de uma constante grande, é necessario usar
+    a memoria
+
+V2
+
+Representação numérica (decimal/binario)
+
+ - 12 / 2 = 6 resto 0
+   6 / 2 = 3 resto 0
+   3 / 2 = 1 resto 1
+   1 / 2 = 0 resto 1
+
+   1100b = 12 em decimal
+
+* Inteiros sinalizados
+
+   7 = 0000 0111  
+ (-7) = 1000 0111
+
+  - essa Representação apresenta zero positivo e negativo
+  - tem que verificar o bit mais significativo para saber
+    se é soma ou Subtração
+
+ * Complemento de 2
+
+    0000  0
+    0001  1
+    0010  2
+    0011  3
+    0100  4
+    0101  5
+    0110  6
+    0111  7
+    1000  -8    * bit mais significante é negativo
+    1001  -7      restante é positivo
+    1010  -6      le-se -8+2 = -6 
+    1011  -5
+    1100  -4
+    1101  -3
+    1110  -2
+    1111  -1
+
+    conversao:
+
+    0101 = 5 decimal então -5 será: (inverte e soma 1)
+
+    1010+1 = 1011
+
+  - Não existe subtração: fazemos a inversao de um dos
+    valores e somamos positivo com negativo
+
+    3 - 2 = 3 + (-2) = -1
+
+   1 111
+     0011
+    +1101
+    ------
+     0001
+
+  - Em complemento de 2 existe apenas 1 zero
+  - nao é necessario se procupar com a Representação dos
+    numeros nas operações
+
+  * Maiores e menores valores em complemento de 2
+    - limites da arquitetura, e como superar
+
+    - para passar para uma representação maior de bits
+      de 4 bits para 5 bits, copiamos o bit mais significativo
+      para todos os outros bits mais a esquerda
+
+    11000 = -8  --> -16 + 8 = -8
+    00111 = 7  
+
+    * Complemento de 2 possibilita alterar o numero de bits
+      sem necessidade de mexer com o restante.  
+
+
+V3
+  
+  * quando carregarmos um valor menor em um registrador
+    como por exemplo 1 byte (8 bits) em um registrador
+    de 32 ou 64 bits, devemos saber o numero é sinalizado
+    ou não, para que a cópia do bit mais significativo
+    seja feita mantendo o valor
+  - lb command (load byte): carrega byte sinalizado 
+  - lbu command (load byte unsigned): carrega byte não sinalizado  
+
+  - instruções RISC-V são sempre palavras de 32 bits (4 bytes)
+
+  Intruções formato R
+
+  * Operações logicas aritmeticas
+  * Da direita para esquerda:
+  - 7 bits = opcode
+  - 5 bits = rd 
+  - 3 bits = function code 3 (adicional ao opcode)
+  - 5 bits = rs1 registrador fonte 1
+  - 5 bits = rs2 registrador fonte 2
+  - 7 bits = function code 7 (adicional ao opcode)
+
+  * Opcode 51 indica operação logica aritmetica
+  * Function codes 3 e 7 iguais a 0 indicam soma
+
+
+  Instruções tipo I 
+
+  * Operações aritmeticas com immediate e load instructions
+  * Da direita para esquerda:
+  - 7 bits = opcode
+  - 5 bits = rd 
+  - 3 bits = function code 3 (adicional ao opcode)
+  - 5 bits = rs1 registrador fonte 1
+  - 12 bits = immediate com sinal (comp de 2)
+
+  Instruções tipo S 
+  
+  * store instructions
+  * Da direita para esquerda:
+  - 7 bits = opcode
+  - 5 bits = Imm[4:0] parte do immediate que vai do bit 0 a 4 
+  - 3 bits = function code 3 (adicional ao opcode)
+  - 5 bits = rs1 registrador do endereço base
+  - 5 bits = rs2 registrador do valor do operando (dado)
+  - 7 bits = Imm[11:5] parte do immediate que vai do bit 5 a 11
+
+  ** Tudo esta em memoria, instruções dados, o que for
+  ** Programas podem operar sobre Programas
+      - Compiladores, linkers, bibliotecas, etc
+
+V4
+
+  Operações lógicas do RISC-V 
+
+  - Shift left = slli
+  - é o mesmo que multiplicar os bits por 2^i
+ 
+  - Shift right = srli
+  - é o mesmo que dividir os bits por 2^i (apenas para não sinalizados)
+
+  * Da direita para esquerda:
+  - 7 bits = opcode
+  - 5 bits = rd 
+  - 3 bits = function code 3 (adicional ao opcode)
+  - 5 bits = rs1 registrador fonte 1
+  - 6 bits = immediate com sinal (comp de 2)
+  - 6 bits = function code 6 (adicional ao opcode)
+
+  - And  -->  and x9, x10, x11 (andi)
+  - Or   -->  or x9, x10, x11  (ori)
+  - XOR  -->  xor x9, x10, x11 (xori)
+  * Not pode ser feito com NOR do registrador que quero negar e 0
+
+  Branch 
+  
+  - beq rs1, rs2, L1  --> if (rs1 == rs2) branch to instruction labeled L1
+  - bne rs1, rs2, L1  --> if (rs1 != rs2) branch to instruction labeled L1
+
+
+V5
+
+  Exemplo de codigo If
+
+  - f em s3, g em s4, h em s5, i em s6, j em s7
+  
+  .text
+  main:
+  addi s6, zero, 1
+  bne s6, s7, Else
+  Then
+      add s3, s4, s5
+      j Exit 
+  Else
+      sub s3, s4 ,s5
+  Exit
+
+  colocar o codigo em um filename.s
+
+V6
+
+  Exemplo de codigo For (Loop)
+
+  Codigo em C 
+
+  int v[10];
+  sum = 0;
+
+  for (int i = 0; i < 10; i++) {
+    sum += v[i];
+  }
+
+  &v[0] é 0x40
+  sum deve ficar em s0
+
+  Codigo em RISC-V:
+
+  .text
+  main:
+
+      addi t0, zero, 0x40  # ponteiro base 
+      add  s0, zero, zero   # soma 
+      add  t1, zero, zero   # i
+      addi t2, zero, 10    # limite do Loop
+  L1:
+      beq  t1, t2, L1_exit    # saida do Loop
+      slli t3, t1, 2         # i * 4 (2 pq é o valor da potencia n de 2^n)
+      add  t4, t0, t3         # &v[0] + i*4
+      lw   t5, 0(t4)          # v[i]
+      add  s0, s0, t5
+      addi t1, t1, 1         # i++
+      j L1
+  L1_exit:
+
+V6
+
+  Exemplo de contagem de caracteres de uma string
+
+  Codigo em C 
+
+  char *str = "alguma coisa";
+  int cnt = 0;
+
+  while(*str != '\0') {
+    cnt++;
+    str++;
+  }
+
+  str em a0
+  cnt em a1
+
+  Codigo em RISC-V 
+
+  .text
+  main:
+
+      lui  a0, %hi(.MSG)     # hi = high
+      addi a0, a0, %lo(.MSG) # lo = low 
+                             # essas 2 instrução fazem com que em a0
+                             # seja armazenado o ponteiro para .MSG
+      add a1, zero, zero # inicializa cnt
+      add t0, a0, zero  # ponteiro auxiliar que vamos modificar
+
+  L1:
+      lbu t1, 0(t0)          (load byte unsigned)
+      beq t1, zero, L1_exit
+      addi a1, a1, 1
+      addi t0, t0, 1
+      j L1
+  L1_exit:
+      addi t0, zero, 3
+      ecall              # chamada de sistema
+  .data
+  .MSG:  # constante pre-determinada
+      .word 0x62627577
+      .word 0x756c2061
+      .word 0x20616262
+      .word 0x20627564
+      .word 0x00627564
+
+

@@ -1,0 +1,130 @@
+Link Aula terça feira 21 as 23:  https://meet.google.com/esy-tngv-iiq?authuser=1&hs=122
+Link Aula quinta feira 19 as 21: https://meet.google.com/dhw-fgne-pwo?authuser=1&hs=122
+
+Simulador:
+http://spimsimulator.sourceforge.net/
+
+##################################################################################################################
+
+Anotações Aulas
+
+####### Aula1 #######
+
+P1 - 22/04 peso 45 --> Fim do capitulo 4
+P2 - 22/06 peso 55
+Exame - 20/07
+
+média 5
+
+####### Aula2 #######
+
+- Diferença entre SRAM e DRAM
+- tempo de resposta e throughput
+- desempenho relativo
+
+- Tempo de CPU --> ciclo/frequencia ou ciclo x periodo
+- Numero de instruções e CPI       
+
+ciclo de clock = numero de instruções em assembly (IC) x CPI (ciclos por instrução)
+
+Tempo de CPU = IC x CPI x periodo do clico de clock  ou  (IC x CPI) / frequencia
+
+Numeros de instruções sao determinadas pelo programa, ISA (conjunto de instruções da arquitetura do processador) 
+e compilador
+
+Ciclos de Clock = somatorio CPIi x ICi
+CPI = Ciclo de Clock / IC = Somatorio (CPIi x ICi/IC total)
+
+Tempo de CPU = intruções / programa x ciclo clock / intrução x segundos / ciclos de clock
+
+####### Aula3 #######
+
+  - Diferneças entre RISC e CISC
+  - SPIM (PCSPIM) --> Simulador para usar (Uma questao da prova cai) 
+
+  add a, b, c --> a recebe b + c
+ 
+  Ex:               Codigo MIPS compilado:
+  add x, g, h         add $t0, $s1, $s2
+  add y, i, j   -->   add $t1, $s3, $s4
+  sub f, x, y         sub $s0, $t0, $t1
+
+  Cada registrador --> 32 bits
+  Entao R0 --> 0 a 31
+        R1 --> 32 a 63 
+  $t9 para valores temporarios
+  $s0 para mapear variaveis
+
+  - MIPS é BIG ENDIAN
+
+  Ex: (palavra de 4 bytes)
+  g = h + A[8] g em $s1, h em $s2 endereço base de A em $s3
+
+  Exemplo load : lw rt, imed(rs)  ex  lw $s0, 4($t0)
+
+  R:
+  lw $t0, 32($s3)
+  add $s1, $s2, $t0
+
+  * Nao existe instrução subi (subtração com imediato) --> addi $s2, $s1, -1
+
+  $zero é a constante 0; Usado para mover valor entre registradores
+  Ex add $t2, $s1, $zero --> move valor da variavel $s1 para temporario $t2
+
+  * instruções logicas
+  
+  sll
+  srl
+  and, andi
+  or, ori
+  nor
+ 
+ * condicionais
+
+  Instruções tipo I
+  beq, rs, rt, L1  if(rs == rt) desvia para instrução em L1
+  bne, rs, rt, L1  if(rs != rt)
+  j L1 salto para L1
+
+  Ex:
+
+  f,g,h,i,j em $s0, $s1, $s2, $s3, $s4
+
+  beq $s3, $s4, L1
+  j L2
+  L1
+  add $s0, $s1, $s2
+  L2
+  sub $s0, $s1, $s2
+  
+  Ex:
+  while (save[i] == k) i += 1;
+  - i em $s3, $s5, endereço save $s6
+
+  loop: sll $t1, $s3, 2 multiplica por 2 ^ 2, ou seja 4 (multiplica qualquer que seja o valor de i por 4)
+        add $t1, $t1, $s6  (faz endereço do save + i*4 para encontrar a posição real)
+        lw $t0, 0($t1)     (carrega o valor em t0)
+        bne $t0, $s5, exit --> while (save[i] == k)
+        addi $s3, $s3, 1  --> i += 1
+        j loop
+  exit: ...
+
+  slt $t0, $s1, $s2   # if($s1 < $s2)
+
+
+####### Aula4 #######
+  
+
+ - Chamada de procedimento
+ - jr é tipo R (não tipo J)
+
+
+####### Aula5 #######
+
+Pseudointruções final aula
+
+
+
+
+  
+  

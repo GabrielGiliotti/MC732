@@ -1,0 +1,333 @@
+V1
+
+Implementação do processaor
+
+  - Impacto no desempenho
+    
+    - Contagem de instruções (Nivel de Software)
+      - O que determina essa contagem é o programa em si,
+        o compilador utilizado e as instruções em si
+
+      - Com base nessas instruções se define a micro
+        arquitetura (Nivel de Hardware)
+
+      - Com esse conjunto de micro arquitetura se define
+        o CPI e o tempo de ciclo
+
+      - Dentro de um ciclo ocorre uma instrução completa
+        ou um pedaço da mesma 
+
+      - Tempo = Instruções x CPI / Frequencia de clock
+
+
+  - Vamos olhar para duas implementações do RISC-V
+    - Versão simplificada, onde as instruções finalizam
+      em um ciclo 
+
+    * O tempo de ciclo deve comportar o pior caso (que é
+      a instrução mais demorada)
+
+    - Versão mais realista, com uso de pipeline
+      
+  - Vamos olhar para um subconjunto de instruções do 
+    RISC-V que são:
+
+    - Referencia a memoria: ld, sd 
+    - instruções aritmeticas: add, sub, and, or 
+    - Tranferencia de controle: beq
+
+   * Possivel implementar qualquer programa com essas
+     instruções (Turing complete)
+
+
+  - Padrão de execução das instruções (como elas funcionam
+    no geral)
+
+    - Program Counter (PC) aponta para a proxima instrução 
+      a ser executada. PC busca as instrução na memória
+      de instruções.
+
+      - Ocorre a decodificação para determinar o tipo de 
+        instrução a se executar
+
+    - Então usando ALU (unidade logica aritmetica) para 
+      fazer alguns calculos como:
+
+      - Calculo de endereço se a instrução for acesso a memoria 
+      - Comparação se a instrução for um branch
+      - Calculo de um valor se a instrução for aritmetica 
+
+    - E no caso de load/store, a memória de dados é acessada 
+      para pegar/armazenar os dados (apos calculo na ALU)
+
+    - Por ultimo, PC = PC + 4 para ir para proxima instrução
+      ou PC = PC + valor da instrução alvo do branch
+
+    Aprox 7:30, explicação do funcionamento do CPU e 
+    Aprox 15:40, explicação dos sinais de controle
+      - Não anotei pois ele explica com o desenho
+      - Para escolher dados são utilizados multiplexadores
+
+V2
+
+  Conjunto de instruções que vamos analisar é reduzido:
+  add, sub, and, or, lw, sw e beq 
+
+  Codificação das instruções
+
+  Instruções R (add, sub, and, or)  -->  funct7(31:25)  rs2(24:20)  rs1(19:15)  funct3(14:12)  rd(11:7)  Opcode(6:0)
+
+  Ex: 
+  
+    add rd, rs1, rs2 
+    rd = rs1 + rs2 
+    PC = PC + 4
+
+  Intruções I (lw)                  -->  Immediate(31:20)  rs1(19:15)  funct3(14:12)  rd(11:7)  Opcode(6:0)
+  
+  Ex: 
+  
+    lw rd, offset(rs1)
+    rd = MEM[rs1 + offset]
+    PC = PC + 4
+
+  
+  Intruções S (sw)                  -->  High Immediate(31:25)  rs2(24:20)  rs1(19:15)  funct3(14:12)  Low Immediate(11:7)  Opcode(6:0)
+                                              bits(11-5)                                                   bits(4-0)
+  Ex: 
+
+    sw rs2, offset(rs1)
+    MEM[rs1 + offset] = rs2
+    PC = PC + 4 
+
+  
+  Intruções SB (beq)                -->  High Immediate(31:25)  rs2(24:20)  rs1(19:15)  funct3(14:12)  Low Immediate(11:7)  Opcode(6:0)
+                                        Imm bit 12 e bits(10-5)                                      Imm bit 11 e bits(4-0)
+  Ex:
+
+    beq rs1, rs2, offset
+    if rs1 == rs2
+      PC = PC + offset
+    else 
+      PC = PC + 4
+
+    (nunca salta pra endereço
+     impar)
+
+
+  * Formatos de instruções amenizam utilização do Hardware devido a regularidade 
+
+
+V3
+
+  Logicas de Design Basicas (revisao MC602)
+
+    - Tensao baixa = 0, Tensao Alta = 1
+    - 1 fio por bit (32 bits = 32 fios <--> uso de barramentos)
+
+    - Elementos Combinacionais
+
+      - Logica Combinacional: entrada, tempo de propagação pelo circuito, saida (em função de entrada)
+      - Logica Sequencial: blocos utilizados para armazenar informação - elementos de memoria
+
+    Ex: de bloco Combinacionais 
+
+      - And-Gate
+      - Or-Gate
+      - Adder
+      - Multiplexer
+      - ALU 
+
+    Ex: de elementos sequenciais
+
+      - Registradores
+      - Flip-Flops
+        - Usam sinal de clock para determinar quando atualizar valor armazenado
+        - Clock sincroniza as escritas nos elementos sequenciais
+        - Sinal de escrita deve estar setado para atualizar valor armazenado em alguns elementos sequenciais
+
+    - Metodologia de clock
+
+      - logica Combinacional transforma os dados durante os ciclos de clock
+        - entre os limites do clock (subida/descida)
+        - o input vem dos elementos de estado e vao para outros elementos de estado
+          ou podem ainda ser escritos sobre os mesmo elementos de estado utilizados inicialmente
+        - delay mais longo determina o periodo de clock 
+
+
+V4
+
+  Construção do Datapath
+
+  - Datapath é constituido de registradores, memoria, somadores, ALU, etc 
+
+  Fase 1: Instruction Fetch 
+
+    - Componentes: PC, somador e Memória de instruções
+
+    - Inicialmente, PC aponta para uma posição de memória da memória de instruções
+      - Vale lembrar que temos 2 memorias: de instruções e de dados 
+      - é necessário ser possivel acessar memoria de dados e de instruções em cada ciclo 
+      - como não é possivel fazer ambos ao mesmo tempo, as memorias são separadas
+    
+    - na saida da memoria de instruções temos a instrução inicialmente apontada por PC que será executada
+    - Além disso, temos um somador que incrementa o valor de PC em 4 para avançar para a próxima instrução
+
+  Instruções no formato R
+
+    - Com a instrução recebida da saida da memória de instruções, para instruções do tipo R devemos informar 
+      ao banco de registradores os registradores 1 e 2 que devem ser lidos e o registrador de saida (write register)
+    
+    - Com os registradores 1 e 2, que armazenam os dados que serão processados, o banco de registradores envia
+      o dado para a ALU (Unidade logica aritmetica) que irá processar os dados e no final do ciclo de clock 
+      irá atualizar o banco de registradores, colocando o resultado da operação no registrador de saida (write register)
+
+    - O banco de registradores recebe um sinal que indica se deve ser atualizado ou não. Então mesmo que o dado chegue,
+      se o sinal for 0, o banco não será atualizado
+
+    - ALU tambem recebe um sinal para saber qual operação realizar. O sinal é de 4 bits por conta da possibilidade da ALU
+      poder realizar diferentes tipos de operações
+
+  Instruções Load/store
+   
+    - Vão ler registradores do banco de registradores 
+    - Se for load - acessa o registrador que aponta pra uma posição de memória, soma offset e armazena no registrador 
+      de destino
+      - o offset é somado com uma valor que vem dentro do corpo da própria instrução
+
+    - Elem disso temos um gerador de imediato, que recebe como entrada bits da instrução e retornar na saida um 
+      valor de imediato extendido
+
+    - ALU é usada para fazer a soma do offset 
+    - Load faz uma leitura do banco de registradores 
+    - Store faz duas leituras do banco de registradores
+    - Ambos calculam o endereço com offset
+
+    - Memória de dados recebe sinais para Load/Store, a instrução fornece esse sinal 
+
+    (Ficou um pouco confusa essa parte)
+
+  Instrução de Branch
+
+    - faz leitura do banco de registradores
+    - compara os valores utilizando ALU. Faz subtração dos valores de r1 e r2. Se r1 - r2 = 0, então saida true 
+    - o label que colocamos na instrução beq calcula o deslocamento relativo ao PC atual
+      - soma imediado de 13 bits com PC atual
+
+V5
+
+  Geração de imediatos - retomando aula 2
+
+  Codificação das instruções
+
+  Instruções R (add, sub, and, or)  -->  funct7(31:25)  rs2(24:20)  rs1(19:15)  funct3(14:12)  rd(11:7)  Opcode(6:0)
+
+
+  Intruções I (lw)                  -->  Immediate(31:20)  rs1(19:15)  funct3(14:12)  rd(11:7)  Opcode(6:0)
+  
+  
+  Intruções S (sw)                  -->  High Immediate(31:25)  rs2(24:20)  rs1(19:15)  funct3(14:12)  Low Immediate(11:7)  Opcode(6:0)
+                                              bits(11-5)                                                   bits(4-0)
+
+  
+  Intruções SB (beq)                -->  High Immediate(31:25)  rs2(24:20)  rs1(19:15)  funct3(14:12)  Low Immediate(11:7)  Opcode(6:0)
+                                        Imm bit 12 e bits(10-5)                                      bits(4-1) e Imm bit 11 
+
+
+  - Entrada: palavra de instrução 
+  - Saida: valor de 32/64 bits
+
+  Ex: instrução Store      -       31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 30 29 28 27 26 25 11 10  9  8  7
+
+      instrução load       -       31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 30 29 28 27 26 25 24 23 22 21 20
+
+      instrução branch      -      31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31  7 30 29 28 27 26 25 11 10  9  8  0 
+                                                                                (nesse caso o bit da posição 0, tem o valor fixo 0)
+
+      - os numeros desses exemplos indicam o bit da instrução , então 31 é o bit 31 da instrução e assim por diante ...
+
+
+V6 
+
+  Composição dos blocos basicos em um 
+  
+  - cada elemento do datapath pode executar uma função por vez
+  - Assim, precisamos de instruções e memorias separadas
+  - utilização de multiplexadores para selecionar os diferentes caminhos que o dado pode fazer
+
+  Datapath para instrução R / Load / Store
+
+  - Sinal de controle indica se a instrução é de escrita ou não
+  - instrução entra no banco de registradores
+  - registradores que serão utilizados são decodificados da palavra de instrução
+  - dado dos registradores são lidos e o dado do primeiro registrador é enviado para ALU
+  - o dado do segundo registrador, no caso de instruções de load store não chega na ALU, e sim o immediado
+    - existe um multiplexador para selecionar o dado do registrador 2 ou do imediato
+
+  - Na ALU, sinal de controle indica operação a ser feita (AND, OR, Add, Sub, etc)
+  - O Resultado da ALU vai para 2 lugares:
+    - sendo o primeiro deles uma entrada de endereço na memoria de dados 
+    - e o segundo um multiplexador (que fica depois da memoria de dados e recebe a saida da memoria de dados tambem)]
+
+  - Na Memória de dados, tambem existem sinais de controles para indicar memory read e memory write
+    - o endereço (resultado da ALU) é utilizado quando um deles é setado
+    - se for um memory write, o que será escrito na memoria é o dado do segundo registrador do banco de registradores
+    - se for um memory read, o dado será escrito no banco de registradores
+      - quem decide isso é o multiplexador
+
+  (Se nencessario rever explicação)
+
+  ALU control       Function
+-------------------------------
+     0000             And              Load/Store  --> Function Add
+     0001             Or               Branch      --> Function Sub
+     0010             Add              Instrução R --> Depende Op code
+     0110             Sub
+
+
+V7
+
+  Explicação de como determinar sinais de controle para cada tipo de instrução
+  (Se necessario, assistir novamente pois não vale a pena decorar os sinais para cada tipo de instrução)
+
+
+
+lw    branch = 0
+      memRead = 1
+      memToReg = 1
+      aluOP = add
+      memWrite = 0
+      AluSRC = 1
+      regWrite = 1
+
+
+sw    branch = 0
+      memRead = 0
+      memToReg = DC
+      aluOP = add
+      memWrite = 1
+      AluSRC = 1
+      regWrite = 0
+
+add   branch = 0
+      memRead = 0
+      memToReg = 0
+      aluOP = add (se for sub é sub, etc. Depende do function code tambem)
+      memWrite = 0
+      AluSRC = 0
+      regWrite = 1
+
+
+beq   branch = 1
+      memRead = 0
+      memToReg = DC
+      aluOP = sub
+      memWrite = 0
+      AluSRC = 0
+      regWrite = 0
+
+
+
+40 =  0101000
+100 = 1100100
+      0100000

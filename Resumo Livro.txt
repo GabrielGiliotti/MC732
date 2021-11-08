@@ -1,0 +1,748 @@
+
+RESUMO LIVRO: Ler de 3 a 4 Seções Por dia (Se possivel, no minimo 2 ta safe)
+              Ex: Ler hoje 1.1 e 1.2, amanha 1.3 e 1.4, e assim por diante
+
+Cap 1
+
+1.1 Introdução (Re-ler)
+
+ - Tres classes de aplicações de computação
+   
+   * Computadores de mesa (Computadores pessoais)
+   * Servidores
+   * Computadores Embarcados (Smart TVs, SmartPhones, Carros)
+
+ - Motivações:
+
+   * Como programas escritos em linguagens de alto nivel sao traduzidos em linguagem de maquina e como o hardware
+     executa esses programas ?
+
+   * Qual é a interface entre software e hardware e como software instrui o hardware a performar as funções neces-
+     sarias ?
+
+   * O que determina a performance de um programa e como um programador pode melhorar a performance ?
+
+   * Quais tecnicas podem ser utilizadas pelos designers de hardware para melhorar a performance ?
+
+   * Quais sao os motivos e consequencias para a recente troca do processamento sequencial para o processamento
+     paralelo ?
+
+1.2 Below Your Program
+
+  - Sistemas de softwares: sao sistemas que oferecem serviços que são comumente utilizados
+  - Sistemas operacionais: é o gerenciador de recursos de um computador, que faz a interface entre hardware e 
+    softwares
+
+  - SOs:
+    - gerenciam operações de I/O
+    - Alocação de memória
+    - Compartilhamento protegido dos recursos entre multiplas aplicações
+
+  - Fala sobre :
+
+    - Instruções
+    - Bit
+    - Linguagem de maquina
+    - compiladores
+    - Linguagem assembly e assembler
+
+    - Linguagem auto nivel --> Compilador --> Linguagem assembly --> Assembler --> Linguagem de maquina
+
+  * linguagens de mais auto nivel ajudam a pensar e resolver problemas de forma mais natural
+    - Linguagem é criada pensando em resolver um problema especifico
+  
+  * também aumentam a produtividade do programador
+
+  * linguagem se torna independente do hardware (ja que compiladores e assemblers funcionam em qualquer maquina)
+
+1.3 Under the covers
+
+  - Funções basicas do computador:
+
+    - entrada de dados
+    - saida de dados 
+    - processamento de dados
+    - armazenamento de dados
+
+  - 5 componentes de um computador: input, output, memory, datapath e control
+    --> control e datapath = processador
+
+  - LCD - Liquid Crystal Displays
+  - DRAM - Dynamic random access memory
+  - SRAM - Static random access memory --> mais rapida, menos densa e, portanto, mais cara que DRAM
+
+  - Datapath: Local onde sao feitas as operações aritmeticas
+  - Control: gerencia datapath, I/O e memoria de acordo com os comandos recebidos em programas.
+
+ * ISA - Instruction Set Architecture: faz a interface do hardware com o software de mais baixo nivel. Ela
+                                       engloba tudo que é necessario para fazer os codigo binarios funcionarem.
+
+ * ABI - Application Binary Interface: Interface do SO + conjunto de instruções do usuario, que define um padrao
+                                       de portabilidade binaria entre computadores
+
+ * Implementação (implementation) é o hardware que obedece as abstrações da arquitetura.
+
+ * VLSI (Very Large scale Integrated circuit): composto por milhares de transistores
+
+1.4 Performance
+
+ - Performance é medida de acordo com a tarefa que quero resolver
+ - Inicialmente, estamos preocupados com o tempos de resposta
+
+ Entao : Perfomance X = 1 / Tempo de Execução X  --> Onde X é um pc
+
+         Performance Y > Performance X se --> 1 / Tempo de Execução de X > 1 / Tempos de Execução de Y
+
+         Portanto: Tempo de Execução Y > Tempo de Execução X
+
+         Performance X / Performance Y = Tempo de Execução Y / Tempo de Execução X = n
+
+  - Performance CPU
+  
+  * Tempo de execução de um programa para CPU = Ciclos de clock da CPU para o programa * Periodo do clock   ou
+  * Tempo de execução de um programa para CPU = Ciclos de clock da CPU para o programa / frequencia do clock
+
+  * nao confundir tempo de execução do programa com o periodo do clock (que tambem é tempo)
+
+
+  - Performance de instruçoes
+
+    ciclos de clock da CPU = Numero instruções programa * Media de ciclos de clock por instrução
+
+
+  - Equação classica performance CPU
+
+    Tempo de CPU = Numero instruções x Média ciclos de clock por instrução x periodo de clock  ou 
+    Tempo de CPU = Numero instruções x Média ciclos de clock por instrução / frequencia de clock
+
+  * CPI: Clock Cycles per instruction
+
+
+1.5 The Power Wall
+
+  - CMOS: Complementary metal oxide semiconductor
+
+  - Dynamic Power: Capacidade load x voltagem ^2 x frequencia de troca (nao sera usado nessa disciplina)
+  
+  - Fanout é o numero de transistores conectados a uma saida
+
+  - O gasto de energia é algo dificil de controlar e esta relacionado a taxa de processamento
+
+
+1.6 Switch from Uniprocessors to Multiprocessors
+ 
+  - Maior foco na taxa de transferencia que no tempo de resposta
+ 
+  - A partir daqui, hardware começa a ter mais de um nucleo por processador, e aparece o conceito de programção
+    paralela.
+
+  - Programar paralelamente é programar com melhor performance, mas tambem algo dificil de realizar.
+
+  - schedular a tarefa a ser realizada para os diferentes core's, sem causar overhead (sobrecarga)
+  - tambem existe o problema de reduzir a sobrecarca de comunicação e sincronização entre os cores
+
+
+1.7 Benchmarking e manufatura do AMD Opteron X4
+
+  - Placa de silicio sao semicondutoras (nao são boas para conduzir eletricidade, por isso sao boas para contruir
+    os circuitos sobre)
+
+  - Nesse capitulo existe formulas para contabilizar o custo da construção de circuitos integrados
+    (mas fora do escopo, nao pareceu relevante em aula)
+
+  - testar por benchmark é escolher determinadas medidas para avaliar a performance. SPEC é uma empresa que faz isso.
+  - avaliação por media geometrica dos resultados (serve para qualquer pc). Se escolhida media aritmetica, os dados 
+    podem variar muito, impedindo uma conclusao definitiva.
+
+
+1.8 Falacias e armadilhas
+
+  - lei de Amandahl's (nao achei relevante - nao apareceu na aula) 
+  - MIPS : Million structions per second
+
+    MIPS = Instruction count / Execution time x 10^6    ou
+
+    MIPS = Clock rate / CPI x 10^6
+
+1.9 Concluindo observações
+
+  - Segundos/Programa = Instruções/Programa x Ciclos clock/Instruções x Segundos/Ciclos clock
+
+1.10 tem a ver com um cd o qual nao tenho, sobre a historia dos computadores e leituras alem do livro (nada relevante)
+
+1.11 Exercicios
+
+ - (Por enquanto vou dar um skip e procurar ver o que o professor cobra nos exercicios dele)
+
+
+Cap 2
+
+2.1 Introdução
+
+  - Instruction set: vocabulario de comandos entendidos por uma dada arquitetura.
+  - Stored-concept program: instruções e dados de diferentes tipos podem ser armazenados em memoria como numeros.
+
+2.2 Operações do hardware do computador
+
+  - Add a, b, c     -->     a = b + c
+  - Add $t0, b, c   -->     temp = b + c 
+
+  * $t0 à $t9 são os registradores temporários
+
+  * Um compilador traduz o codigo de linguagem C para linguagem MIPS
+
+
+2.3 Operandos do hardware do computador
+
+  - Operandos são entradas/argumentos
+
+  * O tamanho de um registrador na arquitetura MIPS é 32 bits (4 bytes)
+  * Esse espaço de 32 bits ou 4 bytes é chamado de "palavra". Uma "palavra" corresponde à um registrador de 32 bits.
+
+  - Existem 32 registradores no MIPS
+
+  * $s0 à $s7 são registradores para variáveis. Ex: int i --> $s0 ou qualquer um dos registradores $s de 0 a 7
+
+  * Arrays e structures são mantidos na memoria e não nos registradores. Usamos os registradores para acessar
+    os endereços de memória desses arrays ou structures na memória e operar sobre seus dados.
+
+  * Instruções para transferir dados entre registradores e memória são chamados "data transfer instructions".
+  * Load e Store são data transfer instructions.
+
+  * Load word --> carrega um dado da memória para o registrador
+  - lw $t0, 32($s3) # carrega da memoria em um registrador temporário $t0 um valor qualquer que esta no meu Array
+                    # A na posição 8, ou seja, A[8]
+
+                    # $s3 é o endereço base para o inicio do Array A
+                    # 32 é uma constante que indica em que posição do vetor vamos buscar o dado carregado, levando
+                    # em consideração o endereçamento em byte, ou seja, palavra da posição 8 na verdade fica no
+                    # offset 32 (4 bytes x palavra posição 8)
+
+                    # $s3 é chamado registrador base
+                    # 32 é chamado de offset
+
+  * Restrição de alinhamento faz com que as palavras em memoria tenham inicio em endereços de valores multiplos de 4.
+  * MIPS é Big-Endian, ou seja, endereços ficam no byte mais a esquerda das palavras
+
+  * Store word --> carrega um dado do registrador para a memória
+  - sw $t0, 48($s3)  # carrega o valor temporario de $t0 para a posição de memória 12 do Array de exemplo, ou seja,
+                     # A[12] na memória = valor
+
+
+  * Add Immediate - Operação para somar uma constante (ou valor imediato) a um valor armazenado.
+  * Geralmente é utilizado para incrementar o indice que aponta para um elemento de algum Array. Ex: i = i + 1
+
+  * addi $s3, $s3, 1  # $s3 = $s3 + 1
+
+
+2.4 Numeros sinalizados e não-sinalizados
+
+  * Vamos considerar apenas complemento de 2
+  - Bit mais significativo indica os sinais : 0 é positivo, 1 é negativo
+  - Se uma soma de 2 positivos resultar em numero com o bit mais significativo = 1, entao ocorreu overflow
+  - Se uma soma de 2 negativos resultar em numero com o bit mais significativo = 0, entao ocorreu overflow 
+
+  * para encontrar um valor negativo podemos usar a regra do inverte e soma 1. Ex:
+
+    1111 1111 1111 1111 1111 1111 1111 1100  ---> é um número negativo em complemento de 2
+
+    Inverção: 0000 0000 0000 0000 0000 0000 0000 0011
+
+    Soma 1:   0000 0000 0000 0000 0000 0000 0000 0100 --> é 4
+
+    Poranto o valor de 1111 1111 1111 1111 1111 1111 1111 1100 é -4 (na base 10)
+
+2.5 Representando instruções no computador
+
+  - Nome dos registradores são mapeados em números. Para o MIPS:
+
+    - registradores $s0 à $s7 <--> registradores 16 à 23 (para variáveis)
+    - registradores $t0 à $t7 <--> registradores 8 à 15 (para dados temporários) 
+
+    (outros registradores em números nos próximos capítulos)
+
+
+  - Tradução de uma instrução MIPS para instrução de máquina
+
+    * add $t0, $s1, $s2 --> em decimal:   0       17      18       8       0       32
+                        --> em binário: 000000   10001   10010   01000   00000   100000
+
+    * Hexadecimal e binário correspondente: 
+    
+      - 0 <--> 0000    4 <--> 0100    8 <--> 1000    c <--> 1100 
+        1 <--> 0001    5 <--> 0101    9 <--> 1001    d <--> 1101
+        2 <--> 0010    6 <--> 0110    a <--> 1010    e <--> 1110
+        3 <--> 0011    7 <--> 0111    b <--> 1011    f <--> 1111
+
+        
+  - Nomes campos instrução MIPS
+
+    * op (opcode): indica operação que será feita (add, sub, etc)
+    * rs: primeiro registrador
+    * rt: segundo registrador
+    * rd: registrador de destino
+    * shamt (shift amount): (explicação em 2.6)
+    * funct (function code): seleciona a variante especifica da operação no campo op
+
+    *  op        rs        rt        rd      shamt     funct
+     6 bits    5 bits    5 bits    5 bits    5 bits    6 bits       
+        
+  - MIPS define que todas as instruções devem ter o mesmo tamanho, logo existem diferentes tipos de intruções
+
+    - O formato anterior, onde os 32 bits são divididos em 6 partes, é chamado de formato R ou instrução tipo R
+    - O formato I ou instruções tipo I levam o seguinte formato:
+
+      *   op       rs       rt     contante ou address 
+        6 bits   5 bits   5 bits        16 bits     
+
+      * Aqui o registrador rt é o registrador de destino, e não um valor da soma
+
+
+2.6 Operações lógicas
+
+  São elas:
+
+    - Shift left : sll
+    - Shift Right: srl
+    - and e and-Immediate: and, andi
+    - or e or-Immediate : or, ori
+    - not: nor --> na verdade o mips implementa a função NOR mesmo, e não o not para manter o padrão
+
+    * sll = shift left logical
+    * srl = shift right logical
+
+    - Ex: sll $t2, $s0, 4    # reg $t2 = reg $s0 << 4 bits
+
+    * Entao:     op   rs   rt   rd   shamt   funct  
+                 0    0    16   10     4       0
+
+    * Fazer shift left por i bits é o mesmo que fazer a multiplicação de um valor por 2^i
+      No exemplo, $t2 = valor y em $s0 * 2^4 = y * 16
+
+    * Na base 10, shift por i bits é = valor * 10^i 
+
+    * and $t0, $t1, $t2      # reg $t0 = reg $t1 && reg $t2
+    * or  $t0, $t1, $t2      # reg $t0 = reg $t1 || reg $t2
+    * nor $t0, $t1, $zero    # reg $t0 = not $t1  --> O outro registrador deve ser 0
+
+
+
+2.7 Instruções para tomar decisões (if then else e loops)
+
+  - Branch if equal
+  * beq register1, register2, L1    # go to instrução rotulada com L1 se reg1 == reg2
+
+  - Branch if not equal
+  * bne register1, register2, L1    # go to instrução rotulada com L1 se reg1 != reg2
+
+   Ex: f,g,h,i,j $s0 a $s4
+       if (i == j) f = g + h; else f = g - h
+
+          bne $s3, $s4, Else   # Usamos bne por questões de eficiencia
+          add $s0, $s1, $s2
+          j Exit
+      Else: sub $s0, $s1, $s2
+      Exit:
+
+  - Jump 
+  * j Label    # leva o fluxo de execução ir para o Label definido. No caso do exemplo, para o final do algoritmo 
+
+
+  ** loops
+  - Inciando diretamente com exemplo
+
+    ex:  Escrever while(save[i] == k) i += 1, sendo que i esta em $s3, k em $s5 e save em $s6
+
+        - Antes de realizar o Load de save[i], precisamos encontrar seu endereço na memória
+        - E antes de adicionar i à base do array save para formar o endereço, devemos multiplicar i por 4
+          devido ao problema de endereçamento de bytes
+          (nos primeiros exemplos, onde tinhamos A[8] e A[12], fizemos a multiplicação dos valores por 4 tambem
+           a diferença é que aqui não sabemos quanto vale i)       
+
+          Loop: sll $t1, $s3, 2     # faz temp = i * 4 para resolver problema de endereçamento de bytes
+                add $t1, $t1, $t6   # faz temp = i + save , levando a temp = endereço de save[i]
+                lw  $t0, 0($t1)     # temp $t0 = save[i]
+                bne $t0, $s5, Exit  # Se save[i] != k, vai para Exit: e sai do Loop
+                addi $s3, $s3, 1    # caso contrario, faz i += 1
+                j Loop              # retorna para inicio do Loop
+          Exit:
+
+  * Outras instruções
+
+    - slt: set on less than
+    * slt $t0, $s3, $s4         # $t0 = 1 if $s3 < $s4, otherwise $t0 = 0
+    * slti $t0, $s2, 10         # $t0 = 1 if $s2 < 10 (constante) 
+      
+      - slt e slti trabalham com signed numbers
+      - sltu e sltui trabalham com unsigned numbers
+
+    * No final desse capitulo existe algo sobre tratar numeros sinalizados como nao sinalizados para tratar
+     verificações do tipo 0<x<y (mas não entendi muito bem)
+
+
+
+2.8 Supporting procedures in computer hardware (Comandos de support realizados no hardware)
+
+  * Conhecemos como funções
+
+  * 6 Steps para chamar uma function:
+
+    1. Colocar os parametros onde a function pode acessa-los
+    2. tranferir o controle para a function
+    3. tomar os recursos armazenados necessarios para executar a function
+    4. realizar a tarefa
+    5. colocar o resultado onde a o programa principal possa acessar o resultado da tarefa
+    6. retornar o controle para o ponto de origem (pois uma function pode ser chamada de diferentes locais)
+  
+
+  * registradores $a0 à $a3 --> registradores de argumentos onde passamos os parametros
+  * $v0 à $v1 --> registradores de valores onde retornamos os resultados
+  * $ra (registrador 31) --> registrador de retorno de endereço, para retornar ao local de origem da chamada da function
+
+  * jal ProcedureAddress   (jump-and-link)  para entrar na procedure
+
+  * No caso do MIPS, existe o comando jr $ra para retornar da procedure
+    (jr = jump register)
+
+  * No caso da necessidade de mais de 4 parametros e 2 retornos, o armazenamento dos dados é feito em memoria com sw e lw
+
+  $sp (stack pointer register - registrador 29)
+
+  - Em procedure calls, registradores $t0 à $t9 não são preservados pelo program calling (ou calle)
+  - já os registradores $s0 à $s7 , o calle deve preserva-los quando realizar uma chamada para procedure call
+      --> No caso do exemplo do livro, não é necessário fazer sw e lw para registradores temporarios
+
+  - Exemplo de recursão nesse capitulo (função fatorial (não ensinou como fazer multiplicação ainda))
+
+
+2.9 Communicating with people
+
+  * lb $t0, 0($sp)     # faz a leitura de um byte (8 bits) da memoria
+  * sb $t0, 0($gp)     # escreve um byte no registrador de destino
+
+  - Exemplo de como copiar uma string usando lb e sb
+
+  * lhu $t0, 0($sp)    # ler meia palavra (16 bits) de memoria/fonte
+  * sh  $t0, 0($gp)    # escreve meia palavra (16 bits) no registrador/ no destino
+
+
+2.10 MIPS Addressing for 32-Bit Immediates and Addresses
+
+  * Obejtivo da seção é explicar como carregar constantes de 32 bits 
+  * o que ocorre pe que geralmente constantes sao pequenas e cabem nos primeiros 16 bits, quando nao cabem, é necessario fazer o 
+    carregamento utilizando comando lui
+  * 32 bits Immediate Operandos
+    - lui (load upper immediate)
+    - ori (or immediate)
+
+    - lui $t0, 255  # lui coloca valor 255 em binario nos 16 bits mais significativos e zera o restante
+                    # 0000 0000 1111 1111 0000 0000 0000 0000 é o valor de $t0 
+      ori $t0, 128  # depois inserimos os 16 bits menos significativos com operação ori 
+
+  * Instruções tipo J: 6 bits para operação e o restante para address
+
+       op (6 bits)            address (26 bits)
+     000000              00000000000000000000
+
+  * operação branch (tipo I)
+
+       op       rs       rt     contante ou address 
+     6 bits   5 bits   5 bits        16 bits     
+
+      
+  * Endereçamento relativo PC: Program Counter (PC) = Register + Branch Address (para endereços maiores que 16 bits)
+    é o endereçamento utilizado pelos comandos de branch (branch equal, branch not equal)
+
+  * no caso do jump ser necessario para uma região longe, maiorque os 16 bits, a instrução
+
+    - beq $t0, $t1, L1 
+
+    será transformada em:
+
+    -     bnq $t0, $t1, L2
+    -     j L1
+    - L2:
+
+
+  * MIPS realikza 5 tipos de endereçamento diferentes:
+
+    - Immediate Addressing
+    - Register Addressing
+    - Base Addressing
+    - PC-relative Addressing
+    - Pseudodirect Addressing
+  
+  * Operações podem utilizar mais de um tipo de endereçamento juntos
+
+
+2.11 Paralelismo e Instruções: sincronização
+
+  * Comados:
+  - ll (load linked)
+  - sc (store conditional)
+
+  * Esse comandos são colocados em sequencia. Se o valor carregado pelo ll for alterado antes da execução de sc,
+    a saida é 0 e a instrução retorna para o inicio para ser executada novamente, caso contrario, a saida 1
+    e a sincronização deu certo
+
+
+2.12 Translating and starting a program
+
+  - Compilador
+  - Assembler
+  - Linker
+  - Loader
+
+
+2.13 A C Sort Example to put all together
+
+  * Esse capitulo explica passo a passo um algoritmo de sort passado para linguagem do MIPS
+  * No momento de fazer exercicios vale a pena ver esse capitulo
+
+
+2.14 Arrays Versus Pointers
+
+  * mostra exemplo e diferença entre utilizar ponteiro e array
+  * ponteiro permite diminuir o numero de instruções dentro do loop, o que tem melhor performance
+
+  * voltar para ver exemplo
+
+
+  Ler Cap 2 até 2.14 Depois ir para 3
+
+  2.15, 2.16, 2.17, 2.18, 2.19, 2.20  falam sobre outras arquiteturas especificas, falacias e armadilhas
+  2.21 tem exercicios
+
+
+  ## Principios do design de Hardware ##
+
+  1. Simplicidade favorece regularidade
+  2. Menor é mais rápido
+  3. Faça o caso comum mais rápido 
+  4. Bom design demanda bom compromisso
+
+
+Cap 3
+
+3.1 Introdução (breve)
+
+3.2 Adição e Subtração
+
+ - Overflow ocorre quando positivo + positivo = negativo
+                          negativo + negativo = positivo
+                          positivo - negativo = negativo
+                          negativo - positivo = positivo
+
+ - para valore nao sinalizados, se o penultimo carry for 0 e o ultimo (carry out) for 1, ocorreu overflow
+
+
+3.3 Multiplicação (pelas video aulas)
+
+     multiplicando
+   x multiplicador
+ -------------------
+     produto
+
+  Ex: 0010  x  0011  =  0000 0110
+
+  Passo a passo:
+
+    1. Verifico se bit menos significativo do multiplicador = 1 e, se for, então produto = produto + multiplicando,
+       caso contrario, apenas faço os passos 2 e 3
+    2. shift left no multiplicando
+    3. shift right no multiplicador
+    4. re-inicia 
+
+
+  multiplicando         multiplicador          produto    
+   dobro bits               bits              dobro bits
+      
+   0000 0010                0011              0000 0000                 
+   0000 0100                0001              0000 0010
+   0000 1000                0000              0000 0110
+
+  * A partir do momento que multiplicador é 0, apenas faz-se o shift left do multiplicando ate zerar tambem
+  * Otimização é feita reduzindo numero de registradores, ou reduzir o tamanho dos registradores
+
+    - Ao inves de deslocar o multiplicando, deslocar o produto para a direita
+      - nesse caso, a ALU recebe os 32 bits mais significativos do produto para somar novamente
+
+    - Podemos tambem guardar o valor no multiplicador nos 16 bits menos significativos do produto  
+      - reduzindo o numero de registradores necessarios
+
+  
+   multiplicadando            produto    
+       0010                 0000  0011  Verifico bit menos significativo do produto ...
+       0010                 0010  0011  (passo de soma antes do shift right)
+       0010                 0001  0001  Verifico novamente ...
+       0010                 0011  0001  (passo de soma antes do shift right)
+       0010                 0001  1000  Verifico novamente ...
+       0010                 0001  1000  (passo do shift right)
+       0010                 0000  1100   ... segue ate chegar ao valor correto 
+       0010                 0000  0110
+
+- Verifica, soma e desloca (Todos os valores devem ser deslocados, nao para quando um dos operadores é 0)
+
+* Para numeros sinalizados, existe mais um bit de saida que deve ser verficado com o bit menos significativo do multiplicador
+
+  - então
+     
+     bit menos significativo          bit de verificação
+        do multiplicador  
+
+              0                               0                   -->  Apenas faz o shift right
+              1                               1                   -->  idem
+              1                               0                   -->  Subtração
+              0                               1                   -->  Soma 
+
+  
+    * No caso da subtração, usamos a regra do inverte e soma 1 para a subtração
+
+
+    Ex: 2 x -3 = -6
+
+    0010      0000 1101 0 
+    0010      1110 1101 0 (sub)
+    0010      1111 0110 1 (shift)
+    0010      0001 0110 1 (soma)
+    0010      0000 1011 0 (shift)
+    0010      1110 1011 0 (sub)
+    0010      1111 0101 1 (shift)    --> iguais
+    0010      1111 1010 1 (shift)  
+
+    * Instruçoes
+
+    - mult rs, rt     
+    - multu rs, rt   produto salvo em registrsdor de 64 bits HI/LO 
+
+    - mfhi rd   (move from hight)
+    - mflo rd   (move from low) 
+
+    - mul rd, rs, rt  --> 32 bits menos significativos sao salvos em rd
+  
+                    
+   
+3.4 Divisão (pelas video aulas)
+
+     (32 bits)                  (64 bits)                (64 bits)
+ quociente(quotient)        divisor(divisor)       dividendo(remainder)   
+
+      0000                     0010 0000                 0000 0111         Valores iniciais          (regra do invert e soma 1 para o divisor antes de operar)           
+      0000                     0010 0000                 1110 0111         dividendo = dividendo - divisor e coloco nos 4 bits mais significativos do dividendo
+      0000                     0010 0000                 0000 0111         Se reminder for menor que 0 restauro o dividendo (verificação pelo bit mais significativo)
+      0000                     0001 0000                 0000 0111         E faço shift right no divisor
+      0000                     0001 0000                 1111 0111         Novamente, dividendo é menor que 0
+      0000                     0001 0000                 0000 0111         faço deslocamento (o deslocamento é dado na linha seguinte a esse texto)
+      0000                     0000 1000                 0000 0111
+      0000                     0000 1000                 1111 1111            
+      0000                     0000 1000                 0000 0111   (restaurei)
+      0000                     0000 0100                 0000 0111   (shift)
+      0000                     0000 0100                 0000 0011   (soma) dividendo apos a subtração (ou soma) é positivo
+      0001                     0000 0100                 0000 0011   (deloco, acresenta 1 no quociente e mantem o dividendo)
+      0001                     0000 0010                 0000 0011   (shift)
+      0001                     0000 0010                 0000 0001
+      0011                     0000 0010                 0000 0001
+      0011                     0000 0001                 0000 0001
+
+
+* Com o divisor otimizado, a ULA utilizada é de 32 bits e armazenamos 
+  - Quem desloca (para a esquerda) é o dividendo, onde o resto fica em seus 32 bits mais significativos e os 32 menos significativos sao 
+    zerados. Então o quociente é o colocado nos 32 bits menos significativos do dividendo
+
+    * no final os 32 bits mais significativos do dividendo devem sofrer um ultimo deslocamento de 1 bit para a direita
+
+
+    divisor         dividendo
+     0010           0000 0111   
+     0010           0000 1110   (shift left inicial)
+     0010           1110 1110   (valor negativo apos sub -> restauro ultimo valor dividendo)
+     0010           0000 1110   (desloco)
+     0010           0001 1100   (shift)
+     0010           1111 1100   (valor negativo)
+     0010           0001 1100   (restauro)
+     0010           0011 1000   (shift)
+     0010           0001 1000   (valor positivo)
+     0010           0001 1000   (mantenho)
+     0010           0011 0001   (deloco e somo 1)
+     0010           0001 0001   (valor positivo)
+     0010           0001 0001   (mantenho)
+     0010           0010 0011   (desloco e somo 1)
+     0010           0001 0011   (shift right nos 32 bits mais significativos para finalizar)
+
+     numero de bits do divisor é o criterio de parada
+
+ * Instruções
+
+   - div rs, rt
+   - divu rs, rt
+
+   - faz uso de mfhi, mflo para acessar o resultado 
+
+
+3.5 Ponto flutuante
+
+    * 1 x 2^-1 é um numero binario em notação cientifica
+
+  ** Para escrever um valor fracionario em ponto flutuante: Ex -0,75
+
+  - primeiro converter a parte positiva, começando pelo inteiro, no caso: 0
+  - depois multiplicar a parte decimal por 2 sucessivamente
+
+    0.75 x 2 --> 1.5    1
+    0.5 x 2 --> 1.0     1  devemos ler de cima para baixo, logo   0.110 
+    0 x 2 --> 0         0
+
+
+  - movemos a virgula (ou ponto no caso) de modo a ficarmos com a notação cientifica --> 0.110 <==> 1.1 
+    - ignoramos o valor inteiro 1, e o valor apos a virgula (ou ponto) é a mantissa
+  - adicionamos o bias --> 127 - 1 = 126  <-->  1111110 (sera o expoente)
+    - bias é numero de casas decimais que deslocamos. Se for para a esquerda soma, se for para a direita subtrai
+
+ - finalmente podemos escrever que
+
+ sign bit       expoente              mantissa
+     1          011 1111 0    100 0000 0000 0000 0000 0000  <--->  10111111010000000000000000000000
+
+
+ ** Escrever ponto flutuante em fracionario
+
+ (-1)^s  x  (1 + parte fracionaria (ou mantissa))  x  2^(expoente - bias)
+
+ Dado:
+
+ 1 10000001 010 0000 0000 0000 0000 0000
+
+  - Da esquerda para a direita, a mantissa pode ser descrita como potencias de 2 negativa, entao
+   2^(-1), 2^(-2), 2^(-3) ... 2^(-23)
+ 
+   Logo no exemplo temos:  (1 + 2^(-2)) = (1 + 0.25)
+
+  - Finalmente, bias é 127 (em precisao simples)  (para precisao dupla é 1023)
+ 
+    Expoente - bias = 129 - 127 = 2
+
+    Então: (-1)^1  x (1.25) x 2^2 = -1 x 4 x 1.25 = -5
+
+
+Cap 4 (video-Aulas)
+
+
+ - Fetch da instrução da memoria para o processador
+ - decodificação da instrução
+ - Utilizar ULA para executar a instrução decodificada
+   - Apos executar, atualizar PC fazendo PC + 4
+ - acessa a memoria de dados (dependendo da instrução)
+ - Escrever no registrador de destino o que foi executado
+
+
+- Construir Datapath
+  - para fazer fetch
+    - memoria de instrução (onde estao as instruções)
+    - registrador (PC)
+    - Add (somador)
+  
+
+
+
+
+

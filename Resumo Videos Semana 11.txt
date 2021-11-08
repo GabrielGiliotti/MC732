@@ -1,0 +1,134 @@
+V1
+
+Sinais de controle no pipeline (São os mesmos sem pipeline)
+
+  - Sinais de controle são decodificados no ID (instruction decode)
+  - São passados adiante os sinais utilizados nos proximos estagios
+
+    - No estagio de execução, são utilizados os sinais
+      - ALU Source
+      - ALU Op
+      - Target Register (registrador de destino)
+
+    - No estagio de memoria
+
+      - Mem read 
+      - Mem write
+      - Branch
+      - PC source
+
+    - No estagio de write back
+
+      - register write
+      - mem to reg 
+
+    (Overview, não fugiu muito do que ja vimos ate o momento - pipeline está ate menos otimizado: branch resolvido estagio 4/acessado 
+    no estagio 5)
+
+
+V2
+
+Exemplo de codigo utilizando sinais de controle
+
+
+  lw  $10, 20($1)
+  sub $11, $2, $3
+  add $12, $3, $4
+  lw  $13 24($1)
+  add $14, $5, $6
+
+
+  #  IF    ID    EX    MEM    WB
+  1  lw
+  2  sub   lw
+  3  add   sub   lw
+  4  lw    add   sub   lw
+  5  add   lw    add   sub    lw    <---
+
+  Assumindo
+  REG[i] = i
+  MEM[Addr] = addr * 10
+
+  Professor explica os sinais de controle junto à execução das instruções no quinto ciclo
+
+    - lw no estagio de wb esta escrevendo o valor 210 no registrador 10
+    - add no estagio de execução esta fazendo a soma na ALU
+    - sub no estagio de mem nao faz nada, apenas passa valor para proximo estagio (valores de controle todos iguais a 0)
+    - no estagio de wb, o sinal de controle mem to reg é 1, significa que na segunda metade do ciclo sera escrito nos registradores
+      o valor carregado da memoria (como ja apontado, 210) 
+
+
+V3
+
+Hazards, forwarding junto a sinais de controle no pipeline
+
+  - Como detectar a necessidade de realizar forwarding quando existe dependencia entre as instruções ?
+  - o forwarding é feito a partir do registrador entre os estagios 
+    - entao uma instrução no estagio de execução computa um valor que sera usado na proximas instruções
+    - a instrução seguinte que entra no estagio de execução recebe o valor do registrador entre os estagios de execução e memoria
+    - a proxima instrução que entrar na execução irá receber o valor do registrador entre os estagios de memoria e write back
+      pois a instrução inicial, que computa o valor que sera usado, continua avançando no pipeline (olhar video 3 aprox 8:00 min)  
+  - quando a primeira instrução alcança o estagio de write back, mesmo que exista dependencia de dados, as instruções que vão entrar em 
+    execução ja irão receber o valor correto em seus registradores de entrada 
+
+  * Quando fazer forwarding ?
+  * De onde (qual instrução) fazer forwarding ?
+  * Para onde (instrução que depende do valor) fazer forwarding ?
+
+  * forwarding entre execução e memoria entra na primeira entrada da ALU
+  * forwarding entre memoria e write back entra na segunda entrada da ALU
+
+
+  Exemplo
+
+  sub  $2, $1, $3
+  and  $12, $2, $5   # 1a  --> Indica de onde esta sendo feito o forwarding
+  or   $13, $6, $2   # 2b
+  add  $14, $2, $2
+  sw   $15, 100($2)
+
+  Formato instruções R:  instr rd, rs, rt
+
+  rs e rt são registradores fonte
+  rd é registrador de destino
+
+  Notação: ID/EX.RegisterRS é o número do registrador RS da instrução que está no registrador de pipeline ID/EX (Estagio EX - Livro ALU/EX).
+
+  Quatro hazards:
+   
+    * Sempre vamos avançar o valor "de um certo estagio" para a ALU (estagio de execução)
+
+    - Do quarto estágio
+      1a. EX/MEM.Register RD == ID/EX.Register RS
+      1b. EX/MEM.Register RD == ID/EX.Register RT
+
+    - Do quinto estagio
+      2a. MEM/WB.Register RD == ID/EX.Register RS
+      2b. MEM/WB.Register RD == ID/EX.Register RT
+
+
+V4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

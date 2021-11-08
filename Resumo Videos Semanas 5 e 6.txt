@@ -1,0 +1,865 @@
+V1
+
+  Aritmetica para computadores
+
+  - Add, sub, multi, floating point , overflow
+
+  Adição
+
+    - Soma bit a bit
+    - Overflow se resultado esta fora do range
+    - Somar um numero positivo e um negativo nunca da overflow
+    - Se dois positivos somados geram um negativo (bit sinal = 1) - overflow
+    - Se dois negativo somados geram um positivo (bit sinal = 0) - overflow
+
+  Subtração
+
+    - É feita com soma (negar segundo valor) --> 7 - 6 = 7 + (-6) 
+    - Overflow se resultado esta fora do range
+    - Subtrair um numero positivo de um positivo ou um negativo de de um negativo
+      nunca geram overflow
+    - Se subtração de positivo com negativo - overflow se bit de sinal = 0 
+    - se Subtração de negativo com positivo - overflow se bit de sinal = 1
+    * Observe = 7 - (-6) = 7 + 6 = 13 pos/neg
+               -7 - (6) = -7 - 6 = -13 neg/pos
+                7 - 6 = 1 pos/pos
+               -7 - (-6) = -1 neg/neg
+
+  Aritmetica para Multimedia
+
+    - Media e graficos operam em vetores de 8 e 16 bits
+    - Operações vetoriais
+      Ex: Supondo RISC-V com registradores de 64 bits 
+          - É possivel quebrar o registrador de 64 bits
+            em 8 x 8 bits, ou 4 x 16 bits ou 2 x 32 bits
+          - Sendo possivel processar multiplos dados
+          - Carry dos extremos não sao passados adiante
+            nesse caso
+
+    - Operações saturantes (Saturating)
+      - Na detecção de overflow, em cenários como o de 
+        processamento de midea, é possivel saturar os 
+        resultados
+      - saturar é assumir o valor maximo no caso da detecção
+        do overflow
+
+  Um pouco de overflow
+    - Dependendo a linguagem escolhida para programar
+      a ocorrencia do overflow é tratada de formas diferentes
+      
+      - Em C, overflow ocorre e resultado errado retorna
+      - Em outras linguagens, é possivel lançar excessões
+
+
+  Multiplicação
+
+    - O modo de pensar é como uma multiplicação na base 10
+      comum
+
+    - o length do produto é a soma do length dos valores multiplicados
+
+    - A multiplicação é feita da seguinte forma:
+      - Verifica o bit menos significativo do multiplicador
+        - se 0, não faz nada
+        - se 1, soma o valor do multiplicando no somador parcial
+      - shifta o valor do multiplicador em 1 para a direita
+      - shifta o valor do multiplicando em 1 para a esquerda
+      - faz isso 32 ou 64 vezes. (para todos os bits)
+
+      * Acumulação dos produtos parciais
+
+    * É possivel fazer cada resultado parcial da multiplicação
+      separadamente em diferentes somadores. Ou seja, Com mais 
+      hardware é possivel tornar a multiplicação mais rapida
+    
+    * Multiplicação multiciclo - leva pelo menos o numero de bits
+    * Aprox dos 18:00 aos 20:00 min falou sobre os comandos 
+      de multiplicação do RISC-V. Se necessário voltar
+
+
+  Divisão 
+
+    - Gera o valor da divisáo
+    - e valor de resto 
+
+    * Não é facilmente paralelizavel - dificil de otimizar
+      - um ciclo da divisão depende dos ciclos anteriores
+
+      Basicamente tenta-se tirar o valor do divisor do resto
+      - se for possivel, gera bit 1
+      - se não , gera bit 0 e passa para proxima iteração
+
+    * Não foi muito bem explicado pois haverá exemplos
+    * Ultimo 2 minutos, comandos de divisao RISC-V
+
+
+V2
+
+  Floating-Point
+
+  - Analogia à notação cientifica normalizada
+    - primeiro digito sempre diferente de 0
+
+  bit de sinal, 1.xxxxxxx x 2^(yyyy)
+                 (base 2)
+
+  - float (precisão simples)
+  - double (precisão dupla)
+
+  - IEEE Std 754-1985
+  - Desenvolvida para resolver divergencia de representações
+  - universalmente adotada
+
+  Bit de sinal - Expoente - fração
+  x = (-1)^s x (1+Fração) x 2^(Expoente - bias) 
+
+  - bias é uma constante = 127
+  - Expoente da precisão simples = 8 bits 
+  - Fração da precisão simples = 23 bits
+  
+  - bias = 1203
+  - Expoente da precisão dupla = 11 bits
+  - Fração da precisão dupla = 52 bits
+
+  * Expoentes 00000000 e 11111111 são reservados, 
+    entao o menor expoente a se utlizar é 00000001
+    e o maior 11111110
+    
+    00000001 = 1
+    expoente = 1 - bias = 1 - 127 = -126
+    Fração = 000...00 --> significando = 1.0
+    --> +/- 1.0 x 2^(-126) = aprox +/- 1.2 x 10^(-38)
+
+    11111110 = 254
+    expoente = 254 - 127 = 127
+    Fração = 111...11 --> significando aprox = 2.0
+    --> +/- 2.0 x 2^(127) = aprox +/- 3.4 x 10^(38)
+
+    (Para double é a mesma ideia)
+
+    * Exemplos de como transformar serão dados posteriormente
+
+  Numeros Denormais
+
+  Expoente 0 --> hidden bit = 0
+  x = (-1)^s x (0+fração) x 2^(-bias)
+  - underflow gradual = conforme a conta vai sendo realizada
+    a precisão vai sendo perdida até 0
+
+  x = (-1)^s x (0+0) x 2^(-bias)
+  * 2 formas de representar o 0
+
+   Expoente = 111...11 e fração = 000...00 --> +/- infinito
+   Expoente = 111...11 e fração != 000...00 --> NaN
+
+  Adição de ponto flutuante
+
+      Dado 9.999 x 10^1 + 1.610 x 10^(-1)
+    
+    - Passo 1 = alinhar os pontos decimais
+      Shiftar o número com menor expoente 
+
+      9.999 x 10^1 + 0.016 x 10^1
+
+    - Passo 2 = somar os significandos 
+      
+      9.999 x 10^1 + 0.016 x 10^1 = 10.015 x 10^1
+
+    - Passo 3 = Normalizar o resultado e verificar over/underflow
+     
+      1.0015 x 10^2
+
+    - Passo 4 = Arrendondar e renormalizar se necessario
+
+      1.002 x 10^2
+    
+    * Aqui coloquei exemplo na base 10, mas vale para base 2
+      (16:27 a 16:40 aparece exemplo para binario)
+
+  Floating point Adder hardware
+
+    - É mais complexo que para inteiros
+    - Se fosse feito em uma unica intrução, o periodo de 
+      clock das instruções se tornaria muito grande e 
+      penalizaria outras instruções
+    - Utiliza vários ciclos
+      - pode ser pipelined 
+
+  Multiplicação Floting point
+
+      1.110 x 10^10  x 9.200 x 10^(-5)
+
+    - Passo 1 = somar os expoentes
+      - para expoentes biased, subtrair o bias do resultado da soma
+      
+      10 + -5 = 5
+
+    - Passo 2 = multiplicar os significandos 
+
+      1.110 x 9.200 = 10.212 x 10^(5)
+
+    - Passo 3 = Normalizar resultado e verificar over/underflow
+
+      1.0212 x 10^6
+
+    - Passo 4 = Arredondar e renormalizar se necessario
+
+      1.021 x 10^6
+
+    - Passo 5 = Determinar o sinal do resultado a partir
+                do sinal dos operandos
+
+      +/- 1.021 x 10^6
+
+  
+  Floating point multiplier hardware
+
+    - complexidade similar ao do somador
+      - utiliza multiplicador ao inves de somador 
+
+
+  Hardware aritmetico de ponto flutuante faz
+    - Adição
+    - subtração
+    - multiplicação
+    - divisao
+    - reciprocal ??
+    - raiz quadrada
+    - conversão Floating point <---> inteiros
+
+    - Operações usualmente levam varios ciclos 
+      - Então podem ser pipelined
+
+  * No RISC-V, intruções de ponto flutuante utilizam 
+    registradore separados: f0 à f31
+
+    - No caso se precisão simples, armazenar os valores nos 
+      32 bits mais baixos (mais a direita)
+
+    - Instruções operam apenas em registrados de Floating point 
+    - Existem instruções para load e store pontos flutuantes 
+      - flw, fld
+      - fsw, fsd
+    
+    - A partir 20:00 aprox, outras instruções para ponto flutuante
+
+V3
+
+  Exemplos de adição e subtração
+
+  - Assumindo palavras de 4 bits 
+
+  Add -> a + b
+  Sub -> a + -b
+
+  Sem sinal 
+  maior valor 0000 -> 0
+  menor valor 1111 -> 15
+
+  Com sinal (Complemento de 2)
+  maior valor 0111 -> 7
+  menor valor 1000 -> -8
+  bit mais á esquerda é o bit de sinal
+
+  Overflow : quando não é possivel representar o numero
+             com o espaço de bits definido
+
+  Operandos com sinal diferentes : não tem overflow 
+  Operandos com sinal igual: ocorre se o sinal inverteu
+    * pos + pos = neg overflow 
+    * neg + neg = pos underflow 
+
+  Conversão para complemento de 2
+    Inverte os bits e somar 1 
+
+    -3 = 0011 (3) --- inverte ---> 1100 + 1 = 1101
+    podemos ler 1101 como -8+4+0+1 = -3
+
+  
+  Exemplos:
+
+    6 + (-4) = 2 
+    0110 + 1100 = 0010 --> bit carry se perde
+
+    1 + (-8) = -7
+    0001 + 1000 = 1001 --> não tem bit de carry
+
+    2 + 4 = 6
+    0010 + 0100 = 0110 --> não tem bit de carry 
+    Na entrada verificar se os numeros tem os mesmo sinal
+    ou não 
+
+    -3 + -5 = -8
+    1101 + 1011 = 1000 --> bit de carry se perde 
+    2 negativos na entrada e saida negativa = sem overflow
+
+    2 + 6 = 8
+    0010 + 0110 = 1000
+    2 positivos na entrada e saida negativa = overflow
+    
+    -3 + -6 = -9
+    1101 + 1010 = 0111 --> carry se perde 
+    2 negativos na entrada e saida positiva = overflow
+
+V4 
+
+  Soma de produtos parciais - Exemplo  
+
+       2040
+       x211
+      ------
+       2040   1 x 2040
+     +20400  10 x 2040
+    +408000 200 x 2040
+    --------
+     430440
+
+  Exemplo binario
+
+       7 x 5 
+    0111 x 0101 
+
+        0111    # Mais simples que o caso decimal 
+      x 0101    # Cada produto parcial multiplica   
+      -------     somente por 1 ou por 0
+        0111
+       00000
+      011100
+     0000000
+    ---------
+    00100011
+
+  Algoritmo de Booth
+
+    - Soma de produtos parciais
+    - Multi-ciclo: acumulamos um dos produtos a cada ciclo 
+    - Numero de ciclos igual ao tamanho da palavra (ex: 32 bit = 32 ciclos)
+    - Três registradores: multiplicando, multiplicador, acumulador
+
+  Passo 1: Verifica o bit menos significativo do multiplicador 
+        se 1, acc = acc + multiplicando
+        se 0, segue 
+
+  Passo 2: Shift left multiplicando (multiplicando *= 2)
+  Passo 3: Shift right multiplicador (passa pa o próximo bit)
+
+  Iteração    Passo    Multiplicando   Multiplicador     Acumulador 
+   (Ciclo)    Input        0111             0101          00000000   
+  ------------------------------------------------------------------   
+     1        1(+)                                        00000000
+                                                             +0111
+                                                        ------------             
+                                                          00000111
+  ------------------------------------------------------------------
+               2           01110
+  ------------------------------------------------------------------
+               3                             010
+  ------------------------------------------------------------------
+     2        1()
+  ------------------------------------------------------------------
+               2          011100
+  ------------------------------------------------------------------
+               3                              01
+  ------------------------------------------------------------------                                               
+     3        1(+)                                        00000111
+                                                           +011100
+                                                        ------------
+                                                          00100011
+  ------------------------------------------------------------------                         
+               2         0111000
+  ------------------------------------------------------------------
+               3                               0
+  ------------------------------------------------------------------
+     4        1()
+  ------------------------------------------------------------------
+               2        01110000
+  ------------------------------------------------------------------
+               3                               0
+  ------------------------------------------------------------------
+   Fim                                                  00100011
+  ------------------------------------------------------------------
+
+  * Número de ciclos igual tamanho da palavra, aqui 4 ciclos
+  * Uma otimização possivel, se houver mais hardware é fazer 
+    as somas parciais em paralelo, fazendo a multiplicação
+    em um único ciclo
+  * Sistemas profundamente embarcados não apresentam instruções 
+    de multiplicação, pois o hardware consegue fazer a multiplicação 
+    como um loop de somas (Produtos parciais em software)
+            
+
+V5
+
+  Algoritmo de divisão multiciclo 
+
+  Registradores: Quociente, Divisor, Resto 
+  Na entrada, alinhar o divisor nos bits superiores
+  (shift left N bits)
+
+  Em cada iteração (N bits + 1)
+  A) Resto = Resto - Divisor 
+  B) Se resto < 0
+       Resto = Resto + Divisor 
+       Quociente = Quociente << 1
+     Se Resto >= 0
+       Quociente = (Quociente << 1) + 1
+  C) Divisor = Divisor >> 1
+
+  Exemplo: 8/2 (Palavra de 4 bits)
+
+   Iteração  Passo     Quociente              Divisor              Resto 
+    (ciclo)
+  ------------------------------------------------------------------------------
+        Entrada           0000               0010 0000              1000
+  ------------------------------------------------------------------------------
+               A                                                 R = R - D  
+                                                               R = 8 - 32 (neg)
+                  --------------------------------------------------------------
+      1        B          0000                                      1000
+                  --------------------------------------------------------------
+               C                             0001 0000
+  ------------------------------------------------------------------------------
+               A                                                 R = R - D      
+                                                               R = 8 - 16 (neg)
+                  --------------------------------------------------------------
+      2        B          0000                                      1000
+                  --------------------------------------------------------------
+               C                             0000 1000
+  ------------------------------------------------------------------------------
+               A                                                 R = R - D      
+                                                               R = 8 - 8 (zero)
+                  --------------------------------------------------------------
+      3        B          0001                                      0000
+                  --------------------------------------------------------------
+               C                             0000 0100
+  ------------------------------------------------------------------------------
+               A                                                 R = R - D      
+                                                               R = 0 - 4 (neg)
+                  --------------------------------------------------------------
+      4        B          0010                                      0000
+                  --------------------------------------------------------------
+               C                             0000 0010
+  ------------------------------------------------------------------------------
+               A                                                 R = R - D      
+                                                               R = 0 - 2 (neg)
+                  --------------------------------------------------------------
+      5        B          0100 (4)                                      0000 (0)
+                  --------------------------------------------------------------
+               C                             0000 0001
+  ------------------------------------------------------------------------------
+
+  Resultado = 4, resto 0
+  Numero de iterações = 5, para palavra de 4 bits (n bits + 1 iterações)
+
+
+V6
+
+  Exemplo: 15/3 (Palavra de 4 bits)
+
+   Iteração  Passo     Quociente              Divisor              Resto 
+    (ciclo)
+  ------------------------------------------------------------------------------
+        Entrada           0000               0011 0000              1111
+  ------------------------------------------------------------------------------
+               A                                                 R = R - D  
+                                                               R = 15 - 48 (neg)
+                  --------------------------------------------------------------
+      1        B          0000                                      1111
+                  --------------------------------------------------------------
+               C                             0001 1000
+  ------------------------------------------------------------------------------
+               A                                                 R = R - D      
+                                                               R = 15 - 24 (neg)
+                  --------------------------------------------------------------
+      2        B          0000                                      1111
+                  --------------------------------------------------------------
+               C                             0000 1100
+  ------------------------------------------------------------------------------
+               A                                                 R = R - D      
+                                                               R = 15 - 12 (pos)
+                  --------------------------------------------------------------
+      3        B          0001                                      0011
+                  --------------------------------------------------------------
+               C                             0000 0110
+  ------------------------------------------------------------------------------
+               A                                                 R = R - D      
+                                                               R = 3 - 6 (neg)
+                  --------------------------------------------------------------
+      4        B          0010                                      0011
+                  --------------------------------------------------------------
+               C                             0000 0011
+  ------------------------------------------------------------------------------
+               A                                                 R = R - D      
+                                                               R = 3 - 3 (zero)
+                  --------------------------------------------------------------
+      5        B          0101 (5)                                  0000 (0)
+                  --------------------------------------------------------------
+               C                             0000 0001
+  ------------------------------------------------------------------------------
+
+
+V7
+
+  Exemplo: 15/4 (Palavra de 4 bits)
+
+   Iteração  Passo     Quociente              Divisor              Resto 
+    (ciclo)
+  ------------------------------------------------------------------------------
+        Entrada           0000               0100 0000              1111
+  ------------------------------------------------------------------------------
+               A                                                 R = R - D  
+                                                               R = 15 - 64 (neg)
+                  --------------------------------------------------------------
+      1        B          0000                                      1111
+                  --------------------------------------------------------------
+               C                             0010 0000
+  ------------------------------------------------------------------------------
+               A                                                 R = R - D      
+                                                               R = 15 - 32 (neg)
+                  --------------------------------------------------------------
+      2        B          0000                                      1111
+                  --------------------------------------------------------------
+               C                             0001 0000
+  ------------------------------------------------------------------------------
+               A                                                 R = R - D      
+                                                               R = 15 - 16 (neg)
+                  --------------------------------------------------------------
+      3        B          0000                                      1111
+                  --------------------------------------------------------------
+               C                             0000 1000
+  ------------------------------------------------------------------------------
+               A                                                 R = R - D      
+                                                               R = 15 - 8 (pos)
+                  --------------------------------------------------------------
+      4        B          0001                                      0111
+                  --------------------------------------------------------------
+               C                             0000 0100
+  ------------------------------------------------------------------------------
+               A                                                 R = R - D      
+                                                               R = 7 - 4 (pos)
+                  --------------------------------------------------------------
+      5        B          0011 (3)                                  0011 (3)
+                  --------------------------------------------------------------
+               C                             0000 0010
+  ------------------------------------------------------------------------------
+
+  * Se Divisor for maior que o dividendo, o resto é o proprio dividendo e Quociente = 0
+  * Se Divisor for 1, quociente será o proprio dividendo 15/1 = 15
+
+
+V8
+
+  Numeros reais: Posição representa uma potencia da base 
+
+  23.75 (Dec)
+
+  2*10^1 + 3*10^0 + 7*10^(-1) + 5*10^(-2)
+
+  1000 (Bin)
+
+  1*2^(3) + 0*2^2 + 0*2^1 + 0*2^0
+
+  1001.11 (Bin)
+
+  1*2^(3) + 0*2^(2) + 0*2^(1) + 1*2^(0) + 1*2^(-1) + 1*2^(-2)
+
+  4 + 0 + 0 + 1 + 0,5 + 0,25 = 5,75 (em Dec)
+
+  11.101 (Bin)
+
+  1*2^(1) + 1*2^(0) + 1*2^(-1) + 0*2^(-2) + 0*2^(-3)
+ 
+  2 + 1 + 0,5 + 0 + 0,125 = 3,625 em Dec
+
+  Conversão da parte fracionaria para binario
+  (Até aqui foram apenas com inteiros)
+
+  Enquanto parte_fracionaria > 0
+    parte_fracionaria *= 2
+    Se parte_fracionaria > 1
+      gerar 1
+      tirar 1 da parte_fracionaria
+    Se não 
+      gerar 0
+
+  Ex: 1.75 (Dec) para binario
+
+  1.11
+
+  .75 * 2 = 1.5 (gera 1)
+  .5 * 2 = 1 (gera 1)
+   0
+
+  Ex: 16.5
+
+  10000.1 * 2^0
+  1000.01 * 2^1
+  100.001 * 2^2
+  10.0001 * 2^3
+  1.00001 * 2^4 (16.5 em binario normalizado)
+
+  .5 * 2 = 1 (gera 1)
+  0
+
+  Ex: 0.25
+
+  0.01
+  0.1 * 2^(-1)
+  1.0 * 2^(-2) (0.25 em binario normalizado)
+
+  .25 * 2 = .5 (gera 0)
+  .5  * 2 = 1 (gera 1)
+   0
+
+  Ex: 1.337
+
+  1.0101011001
+
+  1 + 1/4 + 1/16 + 1/64 + 1/128 + 1/1024 = 1.336914063
+
+  .337 * 2 = 0.674 (gera 0)
+  .674 * 2 = 1.348 (gera 1)
+  .348 * 2 = 0.696 (gera 0)
+  .696 * 2 = 1.392 (gera 1)
+  .392 * 2 = 0.784 (gera 0)
+  .784 * 2 = 1.568 (gera 1)
+  .568 * 2 = 1.136 (gera 1)
+  .136 * 2 = 0.272 (gera 0)
+  .272 * 2 = 0.544 (gera 0)
+  .544 * 2 = 1.088 (gera 1)
+      ...
+
+  * Representação não serão sempre exatas
+
+V9
+
+  Float (32 bits)
+    - Sign (1 bit)
+    - Expoente (8 bits)
+    - Mantissa (23 bits)
+    - Bias = 127 (constante)
+
+ Conversão Float --> Decimal 
+
+ (-1)^Sinal * (1+Fração)*2^(Expoente - Bias)
+
+ * Numeros serão sempre normalizados 
+ * Como float é sempre 1. alguma coisa, valor 1 é implicito
+
+ Exemplos 
+
+ 0 10000000 11000000000000000000000
+ Sign : 0
+ Expoente: 10000000 = 128
+ Mantissa: 11000000000000000000000
+
+ 1 * 1.11 * 2^(128 - 127)
+ 1.11 * 2^1
+ 11.1 (bin) = 3.5 (dec)
+
+ 1 10000100 00000000000000000000000
+ Sign : 1
+ Expoente: 10000100 = 132
+ Mantissa: 00000000000000000000000
+
+ -1 * 1.00 * 2^(132 - 127)
+ -1 * 2^5 = -32
+
+ 0 10000100 00000010000000000000000
+ Sign : 0
+ Expoente: 10000100 = 132
+ Mantissa: 00000010000000000000000
+
+ 1 * 1.0000001 * 2^(132 - 127)
+ 1.0000001 * 2^5
+ 100000.01 = 32.25
+
+V10
+
+  Conversão Decimal --> Float
+
+  * Determinar o bit de sinal 
+  * Converter para binario 
+  * Nomarlizar o numero para alinhar somente um digito igual a
+  * Calcular o expoente a partir da potencia e bias 
+    (Expoente = bias + potencia)
+  * Representar a parte fracionaria, com o 1 à esquerda
+    do ponto sendo implicito
+
+  Exemplos:
+
+  1.75
+  Sign: 0
+  1.11 * 2^0
+  Expoente: 127 + 0 = 0111 1111
+  Mantissa: 11000000
+
+  0 011111111 110000000000000000000
+
+  Volta (para conferir)
+  Sign: 0
+  Expoente: 01111111 --> 127
+  Mantissa: 11000...
+
+  -1^0 * 1.11 * 2^0 = 1.11 = 1.75
+
+  -0.25 (Decimal)
+  Sign: 1
+  0.01
+  1.0 * 2^(-2)
+  Expoente: 125 -> 0111 1101
+  Mantissa: 0
+  
+  10111110100000000000000000000000
+
+  16.5 (Decimal)
+  Sign: 0
+  10000.1
+  1.00001 * 2^(4) --> Mantissa é o que esta depois do ponto aqui
+  Expoente: 131 --> 1000 0011
+  Mantissa: 00001000000000000000000
+  
+  01000001100001000000000000000000 
+
+
+
+Exercicios Lista
+
+Exe 2 e 3
+
+ Algoritmo de Booth
+
+    - Soma de produtos parciais
+    - Multi-ciclo: acumulamos um dos produtos a cada ciclo 
+    - Numero de ciclos igual ao tamanho da palavra (ex: 32 bits = 32 ciclos)
+    - Três registradores: multiplicando, multiplicador, acumulador
+
+  Passo 1: Verifica o bit menos significativo do multiplicador 
+        se 1, acc = acc + multiplicando
+        se 0, segue 
+
+  Passo 2: Shift left multiplicando (multiplicando *= 2)
+  Passo 3: Shift right multiplicador (passa pa o próximo bit)
+
+  Iteração    Passo    Multiplicando   Multiplicador     Acumulador 
+   (Ciclo)    Input        1101 (13)       1011 (11)       00000000   
+  ------------------------------------------------------------------   
+     1        1(+)                                        00000000
+                                                             +1101
+                                                        ------------             
+                                                          00001101
+  ------------------------------------------------------------------
+               2           11010
+  ------------------------------------------------------------------
+               3                             101
+  ------------------------------------------------------------------
+     2        1(+)                                        00001101
+                                                            +11010
+                                                        ------------             
+                                                          00100111
+  ------------------------------------------------------------------
+               2         00110100 (acresecentei 2 zeros à esquerda para resposta)
+  ------------------------------------------------------------------
+               3                            0010 (acresecentei 2 zeros à esquerda para resposta)
+  ------------------------------------------------------------------                                               
+     3        1()                                        
+  ------------------------------------------------------------------                         
+               2         1101000
+  ------------------------------------------------------------------
+               3                               1
+  ------------------------------------------------------------------
+     4        1(+)                                        00100111
+                                                          +1101000
+                                                        ------------             
+                                                          10001111
+  ------------------------------------------------------------------
+               2        11010000
+  ------------------------------------------------------------------
+               3                               0
+  ------------------------------------------------------------------
+   Fim                                                    10001111
+  ------------------------------------------------------------------
+
+  * Número de ciclos igual tamanho da palavra, aqui 4 ciclos
+  * Uma otimização possivel, se houver mais hardware é fazer 
+    as somas parciais em paralelo, fazendo a multiplicação
+    em um único ciclo
+  * Sistemas profundamente embarcados não apresentam instruções 
+    de multiplicação, pois o hardware consegue fazer a multiplicação 
+    como um loop de somas (Produtos parciais em software)
+
+Exe 4
+
+
+  22.5 (Decimal)
+  Sign: 0
+  10110.1
+  1.01101 * 2^(4) --> Mantissa é o que esta depois do ponto aqui
+  Expoente: para 16 bits, bias = 15 --> 19 = 10011 
+  Mantissa: 0110100000
+  
+  0100110110100000
+  
+
+Pedrinho
+
+Exe 2 e 3
+
+  Passo 1: Verifica o bit menos significativo do multiplicador 
+        se 1, acc = acc + multiplicando
+        se 0, segue 
+
+  Passo 2: Shift left multiplicando (multiplicando *= 2)
+  Passo 3: Shift right multiplicador (passa pa o próximo bit)
+
+ Iteração    Passo    Multiplicando   Multiplicador     Acumulador 
+   (Ciclo)   Input       1010 (10)      1110 (14)        00000000   
+  ------------------------------------------------------------------   
+     1        1()                       
+  ------------------------------------------------------------------
+               2          10100
+  ------------------------------------------------------------------
+               3                           111
+  ------------------------------------------------------------------
+     2        1(+)                                        00000000
+                                                            +10100
+                                                        ------------             
+                                                          00010100
+  ------------------------------------------------------------------
+               2        00101000 (acresecentei 2 zeros à esquerda para resposta)
+  ------------------------------------------------------------------
+               3                           0011 (acresecentei 2 zeros à esquerda para resposta)
+  ------------------------------------------------------------------                                               
+     3        1(+)                                        00010100
+                                                           +101000
+                                                        ------------             
+                                                          00111100
+  ------------------------------------------------------------------                         
+               2        1010000
+  ------------------------------------------------------------------
+               3                            1
+  ------------------------------------------------------------------
+     4        1(+)                                        00111100
+                                                          +1010000
+                                                        ------------             
+                                                          10001100
+  ------------------------------------------------------------------
+               2        10100000
+  ------------------------------------------------------------------
+               3                            0
+  ------------------------------------------------------------------
+   Fim                                                    10001100
+  ------------------------------------------------------------------
+
+
+Exe 4
+
+
+  18.75 (Decimal)
+  Sign: 0
+  10010.11
+  1.001011 * 2^(4) --> Mantissa é o que esta depois do ponto aqui
+  Expoente: para 16 bits, bias = 15 --> 19 = 10011 
+  Mantissa: 0010110000
+  
+  0100110010110000

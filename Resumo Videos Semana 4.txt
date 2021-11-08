@@ -1,0 +1,494 @@
+V1
+
+Blocos basicos 
+
+- Sequencias de instruções sem branches
+- Sequencias de instruções sem alvos 
+
+* Compilador identifica esses blocos para realizar otimizações
+
+Outras operações condicionais
+
+  - blt (branch less then)
+  - bge (branch greater equal)
+
+  para valores não sinalizados usar bltu, bgeu
+
+Procedure Calling
+
+ - chamada de função: bloco de codigo que pode ser re-utilizado
+ - chamada de função precisam retornar para onde local de 
+   onde foram chamadas
+
+ - podem ter argumentos e valores de retorno 
+
+ Passos necessarios:
+
+  * Parametros são colocados nos registradores x10 à x17
+  * Transfere-se o controle para a função/Procedure
+  * Salva em memoria dados locais para continuar apos o retorno da Procedure
+  * Realiza a operação da Procedure
+  * Guarda o resultado da função em um registrador para que possa ser acessado pelo caller
+  * Retorna para o local onde foi chamada (endereço registrador x1)
+
+ Então, para fazer a chamada, utilizamos jump and link
+ -->  jal x1, ProcedureLabel
+
+ Para retornar da função, utilizamos jump and link register 
+ --> jalr x0, 0(x1)
+
+Procedimento folha
+
+  - Não chama outras funções
+  - Se for possivel armazenar todos os dados nos registradores
+    não abre espaço na pilha
+
+Registradores Temporarios
+
+  - t0 ate t5 (ou x5 à x7 e x28 à x31)
+    - Não precisam ser preservados por uma função
+
+  - s0 à s11 (ou x8, x9, x18 à x27)
+    - antes de usar na função é necessario salva-los na pilha 
+
+
+Procedimentos não folha
+
+  - Procedures (funções) que chamam outras procedures (funções)
+  - Devem salvar na memoria, Pelo menos, o endereço de retorno deles na pilha
+
+V2
+
+  Exemplo de Leaf Procedure Call (chamada de função folha)
+
+  - Não chama nenhum outro Procedimento
+  - Não usa registradores sx's (s0,s1, ...), então não coloca
+    nada na pilha 
+
+  Ex:
+
+  Codigo C 
+
+  int min (int a, int b) {
+    if(a < b) {
+      return a;
+    } else {
+      return b;
+    }
+  }
+
+  a -> a0 (reservado para argumento de função)
+  b -> a1 (reservado para argumento de função)
+
+  * Se exceder o número de registradores reservados, utilizar
+    memória
+
+  valor de retorno -> a0
+
+  min(a0, a1);
+  if(a0 < a1) goto ret 
+  a0 = a1
+  ret:
+    return a0
+
+  Codigo assembly
+  
+  .text
+  min:
+    blt a0, a1, min_ret # retorna a
+    add a0, a1, zero    # retorna b
+  min_ret:
+    jalr zero, 0(ra) # retorna para o local onde a função foi chamada
+    # jalr salta para o endereço salvo no registrador ra
+  main:
+    addi a0, zero, 6  # a = 6
+    addi a1, zero, 4  # b = 4
+    jal  ra, min     # jal salta para um label fixo e guarda em ra o endereço de retorno
+    addi t0, zero, 1 # valor 1 indica para mostrar no console um inteiro
+    ecall            # se for 3, mostra no console uma string
+
+
+    # jal (jump and link)
+    # jalr (jump and link register)
+
+
+V3
+
+  Mais um exemplo de função folha
+
+  Codigo em C
+
+  void swap(int v[], int a, int b){
+    int tmpa = v[a];
+    int tmpb = v[b];
+    v[a] = tmpb;
+    v[b] = tmpa;
+  }
+
+  # escolho quais registradores serao meus argumentos
+  v[] -> a0
+  a -> a1
+  b -> a2
+
+  a = a*4 (4 porque cada posição do vetor tem 4 bytes)
+  b = b*4
+  ptrA = &v[0] + a*4 
+  ptrB = &v[0] + b*4
+  tmpa = *ptrA
+  tmpb = *ptrB
+  *ptrA = tmpb
+  *ptrB = tmpa
+
+  Codigo assembly
+
+  .text:
+  swap:
+    slli t0, a1, 2   # a << 2 = a*4
+    slli t1, a2, 2   # b << 2 = b*4
+    add  t2, a0, t0  # &V[a]
+    add  t3, a0, t1  # &V[b]
+    lw   t4, 0(t2)   # V[a]
+    lw   t5, 0(t3)   # V[b]
+    sw   t5, 0(t2)
+    sw   t4, 0(t3)
+    jalr zero, 0(ra)
+  main:
+    lui  a0, %hi(.V)     
+    addi a0, a0, %lo(.V)
+    addi a1, zero, 1
+    addi a2, zero, 2
+    jal  ra, swap
+  .data
+  .V:
+    .word 1
+    .word 3
+    .word 2
+    .word 4
+
+V4
+
+  outro Exemplo de procedure folha
+
+  Codigo em C
+
+  int index_min(int v[], int ini, int fim) {
+    int i_min = ini
+    int v_min = v[ini]
+    for(int i = ini + 1; i <= fim; i++) {
+      if(v[i] < v_min) {
+        v_min = v[i];
+        i_min = i;
+      }
+    }
+    return i_min;
+  }
+
+  i = inicio
+  ptr = %v[0] + i*4
+  i_min = i 
+  v_min = *ptr
+
+  L1:
+    i++
+    if(fim < i) goto end_loop
+    ptr += 4
+    v = *ptr
+    if(v_min < v) goto L1
+    i_min = i
+    v_min = val 
+    goto L1
+  
+  end_loop:
+    return i_min
+
+  Codigo em Assembly
+
+  .text
+  index_min: 
+    add  t0, a0, zero   # t0 == v[] 
+    add  t1, a1, zero   # t1 == i
+    slli t2, t1, 2      # t2 == i*4
+    add  t2, t0, t2     # t2 == ptr para v[i]
+    lw   t3, 0(t2)      # t3 == valor v[i] (v_min)
+    add  a0, zero, t1   # a0 == i_min (valor de retorno)
+    Loop:
+      addi t1, t1, 1        # i++
+      blt  a2, t1, end_loop # if (fim < i) then sai do Loop
+      addi t2, t2, 4        # faz i avançar para proxima posicao
+      lw   t4, 0(t2)        # t4 == v[i]
+      blt  t3, t4, Loop     # if (v_min < v[i]) then volta para Loop
+      addi a0, t1, zero     # i_min == i
+      add  t3, t4, zero     # t3 == recebe v[i]
+      j    Loop
+    end_loop:
+      jalr zero, 0(ra)     # so retorna
+  main:
+    lui  a0, %hi(.V)
+    addi a0, a0, %lo(.V)
+    addi a1, zero, 0
+    addi a2, zero, 3
+    jal  ra, index_min
+    addi t0, zero, 1
+    ecall
+  
+  .data
+  .V 
+    .word 5
+    .word 1
+    .word 3
+    .word 2
+
+V5
+
+  Procedimentos não folha (Prcedures que chamam outras procedures)
+
+  Codigo em C 
+
+  # include <stdio.h>
+
+  char *f = "foo";
+  char *b = "bar";
+
+  void bar() {
+    printf("%s", b);
+  }
+
+  void foo() {
+    printf("%s", f);
+    bar();
+  }
+
+  int main() {
+    foo();
+  }
+
+
+  Codigo em assembly 
+
+  .text
+  bar:
+    lui  a0, %hi(.b)
+    addi a0, a0, %lo(.b)
+    addi a1, zero, 3
+    addi t0, zero, 3
+    ecall
+    jalr zero, 0(ra)
+
+  foo:
+    addi sp, sp, -4  # abre espaço na pilha para um endereço inteiro
+    sw   ra, 0(sp)   # salva o endereço para main na pilha
+    lui  a0, %hi(.f)
+    addi a0, a0, %lo(.f)
+    addi a1, zero, 3
+    addi t0, zero, 3
+    ecall
+    jal  ra, bar     
+    lw   ra, 0(sp)   # apos fazer o necessario, retorna o endereço da main para ra 
+    addi sp, sp, 4   # e fecha o espaço criado da pilha
+    jalr zero, 0(ra) 
+
+  main:
+    jal ra, foo
+
+  .data
+  .f:
+    .word 0x006f6f66
+
+  .b:
+    .word 0x00726162
+
+  * Pilha cresce do maior endereço para o menor endereço
+    então crescemos a pilha com negativo e diminuimos a 
+    pilha com positivo
+
+  * Registradores t podemos manipular como quiser
+  * Registradores s devemos salvar na pilhar garantindo
+    que seus valores se mantenham apos a chamada de uma 
+    função
+
+
+V6
+
+  Procedimentos não folha - Selection Sort
+
+  Codigo em C 
+
+  int index_min (int v[], int ini, int fim);
+  void swap (int v[]. int a, int b);
+  * Esses dois já temos implementados
+  
+  void selection_sort(int v[], int tam){
+    for(int i=0; i < tam-1; i++) {
+      min = index_min(v, i tam-1);
+      swap(v, i min);
+    }
+  }
+
+  Ao chegar 
+  a0 -> vetor ordenado
+  a1 -> tam 
+
+  Codigo assembly
+
+  .text 
+
+  selection_sort:
+    # Sempre salvar e restaurar os registradores s quando utilizados
+    addi sp, sp, -16
+    sw   s0, 0(sp)
+    sw   s1, 4(sp)
+    sw   s2, 8(sp)
+    sw   ra, 12(sp)
+    add  s0, a0, zero    # v[] (salva o que esta em a0 em s0 pois nao a garantia 
+    add  s1, zero, zero  # da preservação do registrador a0)
+    addi s2, a1, -1      # tam - 1
+  Lsel:
+    beq  s1, s2, Lsel_exit
+    add  a0, s0, zero # v[]
+    add  a1, s1, zero # ini 
+    add  a2, s2, zero # tam - 1
+    jal  ra, index_min # apos essa linha o valor de retorno deve estar em a0
+    add  a2, a0, zero  # min 
+    add  a0, s0, zero  # v[]
+    add  a1, s1, zero  # i
+    jal  ra, swap
+    addi s1, s1, 1    # i++
+    j    Lsel
+  Lsel_exit:
+    lw   s0, 0(sp)
+    lw   s1, 4(sp)
+    lw   s2, 8(sp)
+    lw   ra, 12(sp)
+    addi sp, sp, 16
+    jalr zero, 0(ra)
+  swap:
+    slli t0, a1, 2   # a << 2 = a*4
+    slli t1, a2, 2   # b << 2 = b*4
+    add  t2, a0, t0  # &V[a]
+    add  t3, a0, t1  # &V[b]
+    lw   t4, 0(t2)   # V[a]
+    lw   t5, 0(t3)   # V[b]
+    sw   t5, 0(t2)
+    sw   t4, 0(t3)
+    jalr zero, 0(ra)
+
+  index_min:
+    add  t0, a0, zero   # t0 == v[] 
+    add  t1, a1, zero   # t1 == i
+    slli t2, t1, 2      # t2 == i*4
+    add  t2, t0, t2     # t2 == ptr para v[i]
+    lw   t3, 0(t2)      # t3 == valor v[i] (v_min)
+    add  a0, zero, t1   # a0 == i_min (valor de retorno)
+    Loop:
+      addi t1, t1, 1        # i++
+      blt  a2, t1, end_loop # if (fim < i) then sai do Loop
+      addi t2, t2, 4        # faz i avançar para proxima posicao
+      lw   t4, 0(t2)        # t4 == v[i]
+      blt  t3, t4, Loop     # if (v_min < v[i]) then volta para Loop
+      addi a0, t1, zero     # i_min == i
+      add  t3, t4, zero     # t3 == recebe v[i]
+      j    Loop
+    end_loop:
+      jalr zero, 0(ra)     # so retorna
+
+
+  main:
+    addi s0, zero, 10
+    addi s1, zero, 20
+    addi s2, zero, 30
+    lui  a0, %hi(.V)
+    addi a0, a0, %lo(.V)
+    addi a1, zero, 4
+    jal  ra, selection_sort
+
+  .data
+  .V 
+    .word 4
+    .word 3
+    .word 2
+    .word 1
+
+V7
+
+  Função recursiva em RISC-V 
+
+  codigo em C
+
+  int termial(int n) {
+    int ret;
+    if(n <= 1) {
+      ret = 1;
+    } else {
+      ret = n + termial(n-1);
+    }
+    return ret;
+  }
+
+  termial(5) = 5+4+3+2+1 = 15
+
+  Codigo em assembly
+
+  termial:
+    addi sp, sp, -8
+    sw   s0, 0(sp)
+    sw   ra, 4(sp)
+    addi s0, a0, zero # s0 deve ser preservado nas chamadas recursivas
+    addi t0, zero, 1
+    bgt  a0, t0, termial_else
+    addi a0, zero, 1
+    j    termial_ret
+  
+  termial_else:
+    addi a0, a0, -1
+    jal  ra, termial
+    addi a0, s0, a0,
+
+  termial_ret:
+    lw   s0, 0(sp)
+    lw   ra, 4(sp)
+    addi sp, sp, 8
+    jalr zero, 0(ra)
+
+  main:
+    addi a0, zero, 4
+    jal  ra, termial
+    addi t0, zero, 1
+    ecall
+
+
+Teste semanal
+
+Maior :
+  blt a1 , a0 , maior_ret  # em a0 fica o retorno da função, entao se a1 < a0, nao é necessario fazer nada e retorna
+  add a0 , a1 , zero       # se a1 > a0 , entao a0 = a1
+  maior_ret :
+  jalr zero, 0(ra)
+MaiorVetor :
+  addi sp , sp , -20
+  sw s0 , 0( sp )
+  sw s1 , 4( sp )
+  sw s2 , 8( sp )
+  sw s3 , 12( sp )
+  sw ra , 16( sp )    # ra é o ponteiro que aponta onde a função foi chamada
+  add s0 , a0 , zero  # a0, a1, a2, a3 são respectivamente A[], B[], C[] e n onde seus valores originais foram salvos na pilha
+  add s1 , a1 , zero
+  add s2 , a2 , zero
+  add s3 , a3 , zero
+L1 :
+  lw a0 , 0( s1 )    # a0 = B[i=0]
+  lw a1 , 0( s2 )    # a1 = C[i=0]
+  jal ra , Maior
+  sw a0 , 0( s0 )   # salva o maior valor retornado na pilha
+  addi s0 , s0 , 4  # A[i+1]
+  addi s1 , s1 , 4  # B[i+1]
+  addi s2 , s2 , 4  # C[I+1]
+  addi s3 , s3 , -1  # n = n+1 ou n = n-1 ??
+  blt zero , s3 , L1 # if (0 < n) --> volta pro loop
+  lw A , 0( sp )
+  lw B , 4( sp )
+  lw C , 8( sp )
+  lw D , 12( sp )
+  lw E , 16( sp )
+  addi sp , sp , STACK
+  RET
+

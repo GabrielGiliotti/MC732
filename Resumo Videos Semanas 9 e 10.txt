@@ -1,0 +1,791 @@
+Semana 9 (Não teve entrega)
+
+V1
+
+Pipelining
+
+  - instrução como tarefas executadas em partes em curtos espaços de tempo
+  - explora paralelismo entre as tarefas/etapas
+  - o tempo de cada tarefa seja em instruções com ou sem pipelining continuam o mesmo
+  - throught put (vazão) das instruções aumentada
+
+  5 estagios do pipelining no RISC-V
+
+    - IF: Instruction fetchfrom memory
+    - ID: Instruction decode e register read
+    - EX: Execute operation or calculate address
+    - MEM: Access memory operand (para operações que nao sao load e store, este estagio nao faz nada, mas existe o gasto de tempo)
+    - WB: Write result back to register
+
+  - Speedup geralmente é proporcional ao numero de estagios 
+
+  Com pipelining e sem pipelining comparamos a vazão (instruções completadas por unidade de tempo)
+    - Latencia (tempo gasto em cada instrução) nao diminui
+
+    - Se estagios/etapas são balanceados: tempo entre instruções no pipe = tempo entre instruções sem pipe / numero de etapas (ou estagios) 
+    - Caso contrario, o speedup é menor
+
+  - RISC-V foi pensando/projetado para facilitar pipelining
+    - é facil buscar e decodificar a instrução em um ciclo
+
+  - numero pequeno de instruções e formato regular
+    - permitem decodificar e ler registradores em um ciclo
+
+  - endereçamento load/store  
+    - calcula endereço no terceiro estagio, acessa a memoria no quarto estagio
+
+
+V2
+
+Hazards (Impedimento)
+
+  - São situações que impedem a inicialização de instruções em um proximo ciclo
+  - Divididos em 3 tipos:
+
+    ** Hazard estrutural: um recurso fisico (hardware) está ocupado e impede o inicio da execução da instrução
+
+      - Conflito pelo uso de um recurso
+      - pipelining com memoria unica por exemplo
+        - instruções de load/store podem tentar acessar a memoria ao mesmo tempo
+
+      * Resolução: adicionar hardware, nesse caso separar em 2 memorias, de instruções e de dados
+
+    ** Hazard de dados: uma instrução que esta para ser inicializada precisa de um dado de uma instrução que ainda nao completou
+
+      - add x19, x0, x1 
+      - sub x2, x19, x3  --> Instrução sub deve esperar resultado ser armazenado no Registrador x19 da instrução add
+
+      * Forwarding: a instrução sub nao esperar a instrução add completar e colocar o valor no registrador, pois o valor do calculo 
+                    add é valido apos o terceiro estagio
+
+        - É necessario conexões extras no datapath para realizar o forwarding 
+        - No caso do Load, não é possivel avançar os resultados pois eles ainda nao estão prontos em determinadas etapas
+          - No load, o valor calculado é o endereço e o valor buscado da memoria so é valido apos quarto estagio (trazer valor da mem)
+          - então 
+            - lw x1, 0(x2)
+            - sub x4, x1, x5  --> não é possivel fazer forwarding do valor de x1 
+            * Chamado Load-Use Data Hazard: o forwarding ocorre, mas ainda existe bolha pra processar dado
+
+        - Code scheduling para evitar bolhas de espera: codigo é reordenado para evitar uso de resultados de load em instruções 
+          que serão executadas em seguida 
+
+        ***** Exemplo em V3 ***** 
+
+    ** Hazard de controle: a decisão sobre uma ação de controle (branchs) dependem de instruções anteriores
+                           - possivelmente nao completadas ainda
+
+
+V3
+
+Exemplo Hazard de dados 
+
+  add x10, x3, x4
+  sub x11, x10, x1
+  lw  x1, 0(x0)
+  lw  x2, 8(x0)   !
+  add x3, x1, x2
+  sw  x3, 24(x0)
+  lw  x4, 16(x0)  ! --> indica bolha entre load e add que vai utilizar valor 
+  add x5, x1, x4
+  sw  x5, 32(x0)
+
+  IF --> ID : carrega palavra de instrução
+  ID --> EX : carrega os dados lidos do banco de registradores
+  EX --> MEM: carrega o resultado da conta da ALU e potencialmente o valor do registrador
+  MEM --> WB: 
+
+  <> indica que o pipeline foi parado pois uma das instruções ainda não obteve acesso a todos os dados necessarios (bolha)
+
+   #    IF    ID    EX    MEM    WB    
+   1    add   -     -     -      -
+   2    sub   add   -     -      -
+   3    lw    sub   add   -      -   
+   4    lw    lw    sub   add    -    --> pode haver forwarding para sub executar
+   5    add   lw    lw    sub    add  --> foram necessarios 5 ciclos para completar o primeiro add
+   6    sw    add   lw    lw     sub  --> ciclo 6 sub é completado
+   7    sw    add   <>    lw     lw   --> no ciclo 7, o dado de x1 ja esta disponivel, mas nao o de x2
+   8    lw    sw    add   <>     lw   --> apos inserida, bolha passa pelos estagios seguintes onde foi inserida no pipe
+   9    add   lw    sw    add    <>
+  10    sw    add   lw    sw     add
+  11    sw    add   <>    lw     sw
+  12    -     sw    add   <>     lw
+  13    -     -     sw    add    <>
+  14    -     -     -     sw     add
+  15    -     -     -     -      sw
+
+   - 15 ciclos / 9 instruções 
+   
+   - No monociclo: Periodo pior instrução para ser completada (passar por todos os ciclos) 800ps
+                   ciclos 9 (numero de ciclos é o numero de instruções)
+                   tempo = 9 * 800 = 7200 ps
+   
+   - No pipeline: Periodo por ciclo 200 ps (tempo de passagem entre 2 estagios do pipeline)
+                  ciclos = 15
+                  tempo = 15 * 200 = 3000 ps
+
+V4 
+
+  Otimização de instruções para eveitar bolha no pipeline
+
+  add x10, x3, x4
+  sub x11, x10, x1
+  lw  x1, 0(x0)
+  lw  x2, 8(x0)   !
+  add x3, x1, x2
+  sw  x3, 24(x0)
+  lw  x4, 16(x0)  --> Podemos antecipar essa instrução de load para evitar a bolha entre load e add (nao depende de registradores anteriores)
+  add x5, x1, x4
+  sw  x5, 32(x0)
+
+  add x10, x3, x4
+  sub x11, x10, x1
+  lw  x1, 0(x0)
+  lw  x2, 8(x0) 
+  lw  x4, 16(x0)  
+  add x3, x1, x2
+  sw  x3, 24(x0)
+  add x5, x1, x4
+  sw  x5, 32(x0)
+
+  #    IF    ID    EX    MEM    WB    
+  1    add   -     -     -      -
+  2    sub   add   -     -      -
+  3    lw    sub   add   -      - 
+  4    lw    lw    sub   add    -
+  5    lw    lw    lw    sub    add 
+  6    add   lw    lw    lw     sub
+  7    sw    add   lw    lw     lw 
+  8    add   sw    add   lw     lw 
+  9    sw    add   sw    add    lw
+ 10    -     sw    add   sw     add
+ 11    -     -     sw    add    sw 
+ 12    -     -     -     sw     add 
+ 13    -     -     -     -      sw
+
+
+V5
+
+  Contas que faltaram do V4
+
+  Monociclo: 9 ciclos
+  Tempo de ciclo: 800ps
+  Tempo = 9 * 800 = 7200 ps
+
+  Pipeline: 13 ciclos 
+  Tempo de ciclo : 200 ps 
+  Tempo = 13 * 200 = 2600 ps 
+
+  * Nem sempre é possivel remover bolhas do pipeline - necessario procurar uma instrução que nao utilize os mesmo registradores
+  * Nunca vai haver bolha entre instruções do tipo R (por causa do Forwarding)
+
+
+V6
+
+  ** Voltando para o ultimo Hazard: Hazards de controle (instruções de branch)
+
+    - quando instrução de branch ocorre, nao se sabe se a proxima instrução será a que está logo em seguida
+      ou se é a instrução endereçada como alvo (jump)
+
+    - Opções:
+      - adicionar stall (bolha) - ruim
+     
+      - No pipeline, devemos comparar os valores e calcular endereço de destino previamente para evitar bolhas
+        - adicionar hardware para determinar o branch no estagio ID
+        - tentar "advinhar" para onde o branch vai
+
+        Branch Prediction
+
+          - Executa as instruções em seguida do branch e, se caso o jump ocorra, basta jogar fora o que foi calculado
+          - se nada é salvo nos registradores, nenhuma penalidade é paga por essa tentativa de predição
+          - instruções em seguida do branch são as mais simples de serem pegas para tentativa de predição
+
+          * Prediction estática
+            - assume que branchs para tras serão executadas, como por exemplo em loops
+            - assume que branchs para frente não serao executadas, como por exemplo ifs
+
+          * Prediction dinamica 
+            - adicionando mais hardware, analisa a frequencia de ocorrencia de um branch especifico
+              - armazena um historico de execução de um dado branch
+              - assume que se um branch foi executado no passado, continuará se repetindo
+              - e também se não ocorreu branch no passado, não ocorrerá no futuro
+
+  * Resumo: 
+    - Pipelining melhora vazao (throughput)
+      - multiplas instruções em paralelismo
+      - com mesma latencia 
+
+    - Hazards
+      - estrutural - add mais hardware
+      - dados - forwarding e modificar ordem das instruções (compilador pode fazer isso, mas nem sempre é possivel)
+      - controle - tentar predizer o proximo passo executando instrução que segue o branch (se nao estiver correto, apenas joga fora)
+
+    * Design das instruções afetam a complexidade de implementação do pipelining
+
+
+Semana 10 (Entrega segunda)
+
+
+V1
+
+  Imagem datapath com disvisoes do pipeline 
+
+  Instruction Fetch (IF) - vai selecionar de onde vem a instrução, uso do valor PC + 4 ou alvo do branch e carregar instrução da memoria
+  
+  Instruction Decode (ID) - leitura do banco de registradores e dereivação dos sianis de controle
+                          - registradores envolvidos na instrução, sinais de controle ALU, memoria 
+
+  Execution address calculation (EX) - execução da operação na ALU, operações ou calculo de endereços
+                                     - Outro somador faz o calculo do alvo do branch nesse estagio (deslocamento) 
+
+  Memory Access (MEM) - feita a leitura e escrita na memoria quando apropriado
+                      - mesmo que nao seja load ou store, as instruções passão por esse estagio (nao fazem nada) 
+
+  Write back (WB) - potencialmente escreve no banco de registradores
+                    - resultado da ALU para instruções do tipo R
+                    - ou valor carregado da memória
+
+  * No diagrama mostrado na aula, linhas azuis indicam potenciais Hazards
+    - intruções de branch: calcular o alvo do branch e determinar se o branch será feito ocorrem no estagio 3 (EX)
+                           Resultado desses comandos podem ser obtidos a partir do estágio 4 do pipeline
+
+    - escrita de dados que pode depender do load da memoria (use after load) 
+                       
+
+  * Entre cada estagio do pipeline,são necessários registradores de borda para armazenar as informações calculadas
+
+    - Registrador IF/ID
+      - guarda resultado do instruction fetch: palavra de instrução 
+      - guarda resultado PC para possivel calculo do alvo de um branch
+
+    - Registrador ID/EX
+      - guarda resultado PC para possivel calculo do alvo de um branch
+      - 2 valores lidos do banco de registradores (registradores r1 e r2)
+      - valor do imediato (no proximo estagio é decidido o uso entre o valor de um registrador ou do imediato)
+      * Sinais de controles tbm ficam no estagio ID (omitido no diagrama), são também sinais cerrados nesse registrador
+
+    - Registrador EX/MEM
+      - guarda endereço alvo do branch
+      - guarda o resultado da operação da ALU
+      - guarda resultado zero (decide se o branch sera feito, se r2 - r1 = zero --> sinal true, entao o branch sera executado) 
+      - guarda dado para as instruções de store. Dado vem do r2, passa pelo registrador ID/EX e tambem chega nesse registrador
+
+
+    - Registrador MEM/WB
+      - Se nao for load ou store, qualquer lixo é passado para esse registrador como dado vindo da memoria
+      - se for load, armazena o valor lido do load
+      - se for instrução R, o resultado da ALU tambem é armazenado nesse registrador para ser enviado de volta pa os registradores
+
+
+V2
+
+  Operação load ciclo a ciclo no pipeline
+
+  No IF:
+
+    - Acessar PC na memoria de codigo
+    - buscar a instrução na posição apontada por PC
+    - fazer PC + 4 para avançar para proxima instrução
+    * Esses passos valem para qulaquer instrução (não somente load)
+
+      - acesso de leitura à memoria de instruções 
+      - atualização do PC baseado na escolha do alvo do branch ou em PC + 4
+      - acesso de escrita no barramento (registrador de borda) IF/ID para passagem dos dados para proxima instrução 
+
+  No ID:
+
+    - acesso de leitura ao barramento IF/ID para pegar os dados salvos (palavra de instrução e PC)
+    - PC avança para proximo estagio, onde à acesso de escrita no registrador de borda ID/EX
+    - acesso de leitura ao banco de registradores (primeira metade do ciclo é feita a escrita, segunda metade é feita a leitura)   
+    * No ID fazemos apenas leitura do banco de registradores (NÃO É FEITO ESCRITA)
+
+      - registrador de borda ID/EX recebe escrita dos valores dos 2 registradores de dados
+      - recebe escrita de PC passado 
+      - recebe escrita do imediato calculado
+
+  No EX:
+
+    - No estagio de execução, registrador ID/EX esta disponivel para leitura e registrador EX/MEM esta disponivel para escrita
+    - Para instruções de load/store são feitos calculos de endereços
+    * Nesse estagio é feito o calculo de resultado do branch, mas não é relevante para esse estagio
+    - ALU realiza os calculos e passa para registrador de borda se valor 0 é true or false e resultado do calculo realizado
+
+      - Registrador de borda EX/MEM recebe valor resultado do branch
+      - se zero true or false 
+      - resultado do calculo
+      - e valor do segundo registrador que pode ser um dado de escrita ou um valor qualquer (Dont care para load)
+
+  No MEM:
+
+    - onde efetivamente ocorre acesso a memoria para load/store
+    - endereço acessado é o que foi calculado pela ALU no estagio anterior e que foi pego no registrador de borda
+
+      - Leitura da memoria de dados esta diposnivel para ser realizada
+      - Valor lido da memória de dados é escrito no registrador MEM/WB
+      - Registrador MEM/WB disponivel para escrita
+
+  No WB:
+
+    - Registrador MEM/WB disponivel para leitura
+    * Problema: sendo um pipe, o que queremos escrever no banco de registradores vem do estagio de WB e não do estagio IF
+      - O valor que vem de IF é referente à instrução que esta acontecendo naquele momento, nao da que ja esta em WB
+
+    - é colocado mais um caminho, onde o endereço do registrador de destino de escrita é passado entre os registradores de borda até o 
+      estagio de WB, para que possa ser escrito o valor no registrador correto
+
+      - passado o dado que será escrito no banco de registradores
+      - e tambem o endereço do registrador de destino da escrita
+      - ocerre a ação de escrever no banco de registradores nesse estagio
+
+  Operação de Store (A partir do estagio de execução - EX)
+
+  No EX:
+
+    - Leitura do primeiro registrador que é o ponteiro base (vem do registrador de borda ID/EX)
+    - Utiliza imediato para calcular endereço de destino
+    - Passa para frente o valor do segundo registrador, que será escrito na memória
+
+  No MEM: 
+
+    - valores que vem do registrador de barramento são utilizados para escrever na memoria
+    - Ocorre efetivamente a escrita na memória (na aula o slide estava errado, indicava leitura)
+        
+  No WB: 
+
+    - Não faz nada (nenhuma operação)
+    - apenas passa valor de escrita como zero indicando que nada sera escrito no banco de registradores
+
+  ** Azul do lado esquerdo == escrita
+  ** Azul do lado direito == leitura
+
+  - A partir dos 11:00 aprox, explicação diagrama do uso de recursos (ALU, registradores, memoria) no pipeline
+  - ate agora utilizamos single-cycke pipeline diagram
+  - A partir de 13:50, fala sobre diferentes operações em um pipeline e o que cada uma esta fazendo em cada estagio
+    - Não anoite pois fizemos algo similar anteriormente (se necessario, assistir novamente)
+
+
+V3
+
+  Exemplo de codigo para contagem de ciclos frente a hazards de controle
+
+  Codigo C 
+
+  struct element {
+    int value;
+    struct element *next 
+  } 
+
+  struc element *head;  //a0
+  int sum = 0;          //a0
+  int count = 0;        //a1
+
+  while (head != NULL) {
+    count = count + 1;
+    sum = sum + head -> value;
+    head = head -> next;
+  }
+
+  Codigo Assembly
+
+    add t0, a0, zero    # t0 = elemento corrente
+    add a0, zero, zero  # sum
+    add a1, zero, zero  # count
+
+  loop: 
+ 
+    beq  t0, zero, exit_loop  # se t0 aponta null, sai do loop
+    addi a1, a1, 1            # count + 1
+    lw   t1, 0(t0);           # value
+    add  a0, a0, t1           # sum + value
+    lw   t0, 4(t0)            # head = next
+    beq  zero, zero, loop     # faz o jump, mas nao tem o mesmo peso que um jump
+
+  exit_loop:
+
+    sub  t5, a1, a0
+    add  t6, a0, a1
+    addi t7, a0, a1  ---> Comando adicionado no V5
+
+V4 
+
+  Execução do Assembly de V3 no pipeline
+
+  - Na versão menos otimizada do pipeline, calculo do endereço do branch e comparação dos valores ocorrem no estagio de execução - EX
+  - No final do quarto estagio - MEM, PC é atualizado
+  - somente no estagio de WB é que temos o alvo do branch ou PC + 4, ou seja, somente no WB que o resultado do branch é carregado em IF
+
+  Diagrama de execução 
+
+  # branch resolvido no quarto estagio
+  # stall sempre que houver branch
+  # Não otimizado: 7 + 6*N instruções
+                  14 + 13*N ciclos
+  
+  #    IF        ID        EX        MEM        WB
+  1    add_t0    -         -         -          -
+  2    add_a0    add_t0    -         -          -
+  3    add_a1    add_a0    add_t0    -          -
+  4    beq_t0    add_a1    add_a0    add_t0     -
+  5    <>        beq_t0    add_a1    add_a0     add_t0      --> fetch ocorre, mas ops decodificar branch, ocorre parada
+  6    <>        <>        beq_t0    add_a1     add_a0      --> ocorreu calculo do endereço alvo 
+  7    <>        <>        <>        beq_t0     add_a1      --> No final do ciclo, estagio 4 atualiza PC com valor de destino do branch
+  8    addi      <>        <>        <>         beq_t0      --> No inicio do estagio 5, estagio 1 pode executar branch e fazer IF 
+  9    lw        addi      <>        <>         <>
+ 10    add       lw        addi      <>         <>
+ 11    lw        add       lw        addi       <>
+ 12    lw        add       <>        lw         addi
+ 13    beq_0     lw        add       <>         lw 
+ 14    <>        beq_0     lw        add        <>
+ 15    <>        <>        beq_0     lw         add
+ 16    <>        <>        <>        beq_0      lw 
+ 17    beq_t0    <>        <>        <>         beq_0
+ 18    <>        beq_t0    <>        <>         <>
+ 19    <>        <>        beq_t0    <>         <>
+ 20    <>        <>        <>        beq_t0     <>
+ 21    sub       <>        <>        <>         beq_t0
+ 22    add       sub       <>        <>         <>
+ 23    <>        add       sub       <>         <>
+ 24    <>        <>        add       sub        <>
+ 25    <>        <>        <>        add        sub
+ 26    <>        <>        <>        <>         add
+
+   - Para loop feito apenas uma vez:
+
+     3 intruções iniciais + 6*N instruções do loop + 1 verificação do branch para + 2 intruções do final
+                                                    nao entrar no loop segunda vez    
+
+     * Para N = 1 --> 12 instruções
+
+       CPI = 26/12 = 2.2 aprox;
+
+
+   - 1 Ciclo por instrução ==> 3 ciclos + 6*N ciclos + 1 ciclo saida loop + 2 ciclos instruções finais = 6 + 6*N 
+   + 4 ciclos para finalizar / sair do pipe
+   + 3 ciclos por branch encontrado ==> 3 (ciclos de stall) * ((2 * N (Numero de iterações loop)) + 1) ciclo de verificação do
+                                                                                                        branch que sai do loop
+   + 1 ciclo de data hazard (use after load)  
+     ==> 1 * N  pois esta dentro do loop
+
+   Total = 3 + N*6 + 1 + 2 = 6 + N*6
+           6 + N*6 + 4 + N*6 + 3 + N = 13 + 13*N 
+
+
+V5
+
+  Otimização pipeline analisado em V4
+
+  - 13 instruções (passando pelo loop 1 vez)
+  - 3 instruções no inicio + 3 instruções final + 6*N instruçoes loop + 1 instrução de saida do loop
+  - 7 + 6*N instruções
+  - 14 + 13*N ciclos
+  - CPI (N=1) = 2.2 aprox;
+
+  Codigo Assembly Otimizado
+
+    add t0, a0, zero    # t0 = elemento corrente                1 ciclo
+    add a0, zero, zero  # sum                                   1 ciclo
+    add a1, zero, zero  # count                                 1 ciclo
+
+  loop: 
+    
+    beq  t0, zero, exit_loop  # se t0 aponta null, sai do loop   N ciclos + 1 quando errar preditor + 3 bolha gerada pelo erro do 
+    lw   t1, 0(t0);           # value                            N ciclos                               preditor
+    lw   t0, 4(t0)            # head = next                      N ciclos
+    addi a1, a1, 1            # count + 1                        N ciclos
+    add  a0, a0, t1           # sum + value                      N ciclos 
+    beq  zero, zero, loop     # faz o jump, mas nao tem o mesmo peso que um jump      N ciclos * 4 (1 da instrução + 3 bolha do erro do 
+                                                                                      preditor)
+
+  exit_loop:
+
+    sub  t5, a1, a0        1 ciclo
+    add  t6, a0, a1        1 ciclo
+    addi t7, a0, a1  ---> Comando adicionado no V5   1 ciclo + 4 ciclos para terminar pipeline
+
+
+  Com reordenação: 14 + 12*N instruções
+  Ciclos =  7 + 6*N + 4 (esvaziar pipeline) + 3*N + 3*(N+1)
+         = 14 + 12*N
+
+  CPI (N=1) = 26/13 = 2
+
+  Exemplo com predição
+
+  # Preditor branch not taken
+
+  #    IF        ID        EX        MEM        WB
+  1    add       -         -         -          -
+  2    add       add       -         -          -
+  3    add       add       add       -          -
+  4    beq       add       add       add        -
+  5    lw        beq       add       add        add
+  6    lw        lw        beq       add        add
+  7    addi      lw        lw        beq        add
+  8    add       addi      lw        lw         beq   --> No caso em que branch nao foi tomado (predição correta, entrou no loop) 
+  9    beq       add       addi      lw         lw
+ 10    sub       beq       add       addi       lw
+ 11    add       sub       beq       add        addi
+ 12    addi      add       sub       beq        add  --> nesse estagio, beq sabe que sera executado, entao operações devem ser 
+ 12    <>        <>        <>        beq        add      canceladas (linha duplicada para representar o cancelamento das ops)
+ 13    beq       <>        <>        <>         beq
+ 14    lw        beq       <>        <>         <>
+ 15    lw        lw        beq       <>         <>
+ 16    addi      lw        lw        beq        <>  --> o mesmo que ocorreu no ciclo 12
+ 16    <>        <>        <>        beq        <>
+ 17    sub       <>        <>        <>         beq
+ 18    add       sub       <>        <>         <>
+ 19    addi      add       sub       <>         <>
+ 20    <>        addi      add       sub        <>
+ 21    <>        <>        addi      add       sub 
+ 22    <>        <>        <>        addi      add
+ 23    <>        <>        <>        <>        addi
+
+ Ciclos:
+
+   6 + 4 (base fora do loop)
+   1 + 3 (ultimo teste do loop - 3 vem das bolhas e 1 vem da propria instrução)
+   6*N + 3*N (loop - 6*N sao das instruções e 3*N vem da bolha da instrução "beq zero, zero, loop")
+
+   Ciclos = 14 + 9*N  
+   
+ CPI (N=1) = 23 ciclos/ 13 instruçoes = 1.8
+ CPI (N=100) = 914/607 = 1.5 (converge para 1.5 pois com varias interações aumenta a chance de acerto do preditor)
+
+
+V6
+
+  Melhorando preditor para diminuir bolha de tamanho 3
+
+  - Branch é resolvido no final do estagio 4
+  - PC é escrito corretamente no estágio 5
+
+  * vamos tentar mover o branch e resolve-lo previamente
+
+    - somador que resolve resultado do branch sai do estagio 3 e vai para o estagio 2
+      - o imediato para gerar o resultado de PC deve ter tempo para ser gerado
+      
+    - Alem disso, é necessario saber se o branch será feito (branch ocorre se valores são iguais)
+      - então utilizando xor's fazemos a comparação de igualdade entre as saidas dos registradores do banco
+      * o resultado da comparação é ligado ao sinal de controle do multiplexador que escolhe entre o valor PC+4 e o valor destino de 
+        do branch 
+      * essa operação de comparação é menos custosa e rápida pois utiliza unidades logicas basicas
+
+      * O valor de destino do branch agora será escrito ao final do estagio 2 (decodificação - ID)
+      * quando beq chegar ao estagio 3 (EX), ja temos o valor de destino do branch calculado, eliminando a bolha 
+
+V7
+
+  Exemplo de pipeline com preditor melhorado para diminuição da bolha (resolução branch ID)
+  # Preidotor branch-not-taken
+
+  Codigo Assembly Otimizado
+
+    add t0, a0, zero    # t0 = elemento corrente                1 ciclo
+    add a0, zero, zero  # sum                                   1 ciclo
+    add a1, zero, zero  # count                                 1 ciclo
+
+  loop: 
+    
+    beq  t0, zero, exit_loop  # se t0 aponta null, sai do loop   N ciclos + 1 quando errar preditor + 1 bolha gerada pelo erro do 
+    lw   t1, 0(t0);           # value                            N ciclos                               preditor
+    lw   t0, 4(t0)            # head = next                      N ciclos
+    addi a1, a1, 1            # count + 1                        N ciclos
+    add  a0, a0, t1           # sum + value                      N ciclos 
+    beq  zero, zero, loop     # faz o jump, mas nao tem o mesmo peso que um jump      N ciclos * 2 (1 da instrução + 1 bolha do erro do 
+                                                                                      preditor)
+
+  exit_loop:
+
+    sub  t5, a1, a0        1 ciclo
+    add  t6, a0, a1        1 ciclo
+    addi t7, a0, a1  ---> Comando adicionado no V5   1 ciclo + 4 ciclos para terminar pipeline
+
+  #    IF        ID        EX        MEM        WB
+  1    add       -         -         -          -
+  2    add       add       -         -          -
+  3    add       add       add       -          -
+  4    beq       add       add       add        -
+  5    lw        beq       add       add        add
+  6    lw        lw        beq       add        add
+  7    addi      lw        lw        beq        add
+  8    add       addi      lw        lw         beq 
+  9    beq       add       addi      lw         lw 
+ 10    sub       beq       add       addi       lw
+ 11    beq_t0    <>        beq_0     add        addi
+ 12    lw        beq_t0    <>        beq_0      add
+ 13    sub       <>        beq_t0    <>         beq_0
+ 14    add       sub       <>        beq_t0     <>
+ 15    addi      add       sub       <>         beq_t0
+ 16    <>        addi      add       sub        <>
+ 17    <>        <>        addi      add        sub
+ 18    <>        <>        <>        addi       add
+ 19    <>        <>        <>        <>         addi
+
+
+  * Para evitar hazards de dados, temos que deixar pelo menos uma instrução entre o resultado de uma instrução R e um branch
+  * e duas instruções entre um load e um branch 
+
+
+  Ciclos: 3 + 7 + 2 + 7*N = 12 + 7*N ciclos
+  CPI: (N=1) = 19/13 = 1.5
+       (N=100) = 712 ciclos/ 609 instruções = 1.2
+
+  * Branch-not-taken nao minimiza impacto quando branch erra
+
+
+  Exercicios:
+
+  add x1 , x2 , x3
+  sub x4 , x5 , x6
+  lw x7 ,0( x1 )
+  xor x8 , x1 , x7
+  not x9 , x7 , x1
+  sw x4 ,0( x8 )
+
+  #    IF        ID        EX        MEM        WB
+  1    add       -         -         -          -
+  2    sub       add       -         -          -        
+  3    lw        sub       add       -          -        add e sub nao usam mesmo registradores, nao há forwarding de ID para EXE
+  4    xor       lw        sub       add        -
+  5    not       xor       lw        sub        add      x1 ja esta disponivel para ser usado por lw, x7 tbm
+  6    not       xor       <>        lw         sub      xor nao pode ser executado pois x1 nao terminou de ser usado no lw
+  7    sw        not       xor       <>         lw 
+  8    -         sw        not       xor        <>
+  9    -         -         sw        not        xor
+ 10    -         -         -         sw         not
+ 11    -         -         -         -          sw
+
+
+  main : 
+    addi t0 , zero , 128   i = 128       1
+    addi t1 , zero , 12    t1 = 12       1
+    add t2 , zero , zero   sum = 0       1
+  loop : 
+    addi t1 , t1 , -1      t1 = t1-1         N
+    lw t3 ,0( t0 )         t3 = v[i]         N
+    add t2 , t2 , t3       sum = sum + v[i]  N
+    addi t0 , t0 ,4        i + 1             N
+    bne t1 , zero , loop   se t1 != 0 --> loop (ser feito 12 vezes) N + 1
+    add a0 , t2 , zero     a0 = sum   1
+    add t0 , zero , zero   t0 = 0     1 
+    addi t1 , zero ,1      t1 = 1     1
+
+   Ciclos = 5*N + 3 + 4 + N*3 + N = 60 + 7 + 36 + 12 = 115  (N=12)
+
+
+ #     IF           ID          EX          MEM        WB
+ 1     addi_t0      -           -           -          -
+ 2     addi_t1      addi_t0     -           -          -
+ 3     add_t2       addi_t1     addi_t0     -          -  
+ 4     addi_t1l     add_t2      addi_t1     addi_t0    -
+ 5     lw           addi_t1l    add_t2      addi_t1    addi_t0 
+ 6     add_t2l      lw          addi_t1l    add_t2     addi_t1
+ 7     addi_t0l     add_t2l     lw          addi_t1l   add_t2
+ 8     addi_t0l     add_t2l     <>          lw         addi_t1l
+ 9     bne          addi_t0l    add_t2l     <>         lw
+ 10    add_a0       bne         addi_t0l    add_t2l    <>     
+ 11    add_t0       add_a0      bne         addi_t0l   add_t2l
+ 12    <>           <>          <>          bne        addi_t0l  --> it 11
+ 13    addi_t1l     <>          <>          <>         bne
+ 14    lw           addi_t1l    <>          <>         <>
+ 15    add_t2l      lw          addi_t1l    <>         <>
+ 16    addi_t0l     add_t2l     lw          addi_t1l   <>
+ 17    addi_t0l     add_t2l     <>          lw         addi_t1l
+ 18    bne          addi_t0l    add_t2l     <>         lw
+ 19    add_a0       bne         addi_t0l    add_t2l    <>     
+ 20    add_t0       add_a0      bne         addi_t0l   add_t2l
+ 21    <>           <>          <>          bne        addi_t0l  --> it 10
+ 22    addi_t1l     <>          <>          <>         bne
+ 23    lw           addi_t1l    <>          <>         <>
+ 24    add_t2l      lw          addi_t1l    <>         <>
+ 25    addi_t0l     add_t2l     lw          addi_t1l   <>
+ 26    addi_t0l     add_t2l     <>          lw         addi_t1l
+ 27    bne          addi_t0l    add_t2l     <>         lw
+ 28    add_a0       bne         addi_t0l    add_t2l    <>     
+ 29    add_t0       add_a0      bne         addi_t0l   add_t2l
+ 30    <>           <>          <>          bne        addi_t0l  --> it 9
+ 31    addi_t1l     <>          <>          <>         bne
+ 32    lw           addi_t1l    <>          <>         <>
+ 33    add_t2l      lw          addi_t1l    <>         <>
+ 34    addi_t0l     add_t2l     lw          addi_t1l   <>
+ 35    addi_t0l     add_t2l     <>          lw         addi_t1l
+ 36    bne          addi_t0l    add_t2l     <>         lw
+ 37    add_a0       bne         addi_t0l    add_t2l    <>     
+ 38    add_t0       add_a0      bne         addi_t0l   add_t2l
+ 39    <>           <>          <>          bne        addi_t0l  --> it 8
+ 40    addi_t1l     <>          <>          <>         bne
+ 41    lw           addi_t1l    <>          <>         <>
+ 42    add_t2l      lw          addi_t1l    <>         <>
+ 43    addi_t0l     add_t2l     lw          addi_t1l   <>
+ 44    addi_t0l     add_t2l     <>          lw         addi_t1l
+ 45    bne          addi_t0l    add_t2l     <>         lw
+ 46    add_a0       bne         addi_t0l    add_t2l    <>     
+ 47    add_t0       add_a0      bne         addi_t0l   add_t2l
+ 48    <>           <>          <>          bne        addi_t0l  --> it 7
+ 49    addi_t1l     <>          <>          <>         bne
+ 50    lw           addi_t1l    <>          <>         <>
+ 51    add_t2l      lw          addi_t1l    <>         <>
+ 52    addi_t0l     add_t2l     lw          addi_t1l   <>
+ 53    addi_t0l     add_t2l     <>          lw         addi_t1l
+ 54    bne          addi_t0l    add_t2l     <>         lw
+ 55    add_a0       bne         addi_t0l    add_t2l    <>     
+ 56    add_t0       add_a0      bne         addi_t0l   add_t2l
+ 57    <>           <>          <>          bne        addi_t0l  --> it 6
+ 58    addi_t1l     <>          <>          <>         bne
+ 59    lw           addi_t1l    <>          <>         <>
+ 60    add_t2l      lw          addi_t1l    <>         <>
+ 61    addi_t0l     add_t2l     lw          addi_t1l   <>
+ 62    addi_t0l     add_t2l     <>          lw         addi_t1l
+ 63    bne          addi_t0l    add_t2l     <>         lw
+ 64    add_a0       bne         addi_t0l    add_t2l    <>     
+ 65    add_t0       add_a0      bne         addi_t0l   add_t2l
+ 66    <>           <>          <>          bne        addi_t0l  --> it 5
+ 67    addi_t1l     <>          <>          <>         bne
+ 68    lw           addi_t1l    <>          <>         <>
+ 69    add_t2l      lw          addi_t1l    <>         <>
+ 70    addi_t0l     add_t2l     lw          addi_t1l   <>
+ 71    addi_t0l     add_t2l     <>          lw         addi_t1l
+ 72    bne          addi_t0l    add_t2l     <>         lw
+ 73    add_a0       bne         addi_t0l    add_t2l    <>     
+ 74    add_t0       add_a0      bne         addi_t0l   add_t2l
+ 75    <>           <>          <>          bne        addi_t0l  --> it 4
+ 76    addi_t1l     <>          <>          <>         bne
+ 77    lw           addi_t1l    <>          <>         <>
+ 78    add_t2l      lw          addi_t1l    <>         <>
+ 79    addi_t0l     add_t2l     lw          addi_t1l   <>
+ 80    addi_t0l     add_t2l     <>          lw         addi_t1l
+ 81    bne          addi_t0l    add_t2l     <>         lw
+ 82    add_a0       bne         addi_t0l    add_t2l    <>     
+ 83    add_t0       add_a0      bne         addi_t0l   add_t2l
+ 84    <>           <>          <>          bne        addi_t0l  --> it 3
+ 85    addi_t1l     <>          <>          <>         bne
+ 86    lw           addi_t1l    <>          <>         <>
+ 87    add_t2l      lw          addi_t1l    <>         <>
+ 88    addi_t0l     add_t2l     lw          addi_t1l   <>
+ 89    addi_t0l     add_t2l     <>          lw         addi_t1l
+ 90    bne          addi_t0l    add_t2l     <>         lw
+ 91    add_a0       bne         addi_t0l    add_t2l    <>     
+ 92    add_t0       add_a0      bne         addi_t0l   add_t2l
+ 93    <>           <>          <>          bne        addi_t0l  --> it 2
+ 94    addi_t1l     <>          <>          <>         bne
+ 95    lw           addi_t1l    <>          <>         <>
+ 96    add_t2l      lw          addi_t1l    <>         <>
+ 97    addi_t0l     add_t2l     lw          addi_t1l   <>
+ 98    addi_t0l     add_t2l     <>          lw         addi_t1l
+ 99    bne          addi_t0l    add_t2l     <>         lw
+100    add_a0       bne         addi_t0l    add_t2l    <>     
+101    add_t0       add_a0      bne         addi_t0l   add_t2l
+102    <>           <>          <>          bne        addi_t0l  --> it 1
+103    addi_t1l     <>          <>          <>         bne
+104    lw           addi_t1l    <>          <>         <>
+105    add_t2l      lw          addi_t1l    <>         <>
+106    addi_t0l     add_t2l     lw          addi_t1l   <>
+107    addi_t0l     add_t2l     <>          lw         addi_t1l
+108    bne          addi_t0l    add_t2l     <>         lw
+109    add_a0       bne         addi_t0l    add_t2l    <>     
+110    add_t0       add_a0      bne         addi_t0l   add_t2l
+111    addi_t1      add_t0      add_a0      bne        addi_t0l  --> it 0
+112    <>           addi_t1     add_t0      add_a0     bne
+113    <>           <>          addi_t1     add_t0     add_a0     
+114    <>           <>          <>          addi_t1    add_t0
+115    <>           <>          <>          <>         addi_t1
+  
