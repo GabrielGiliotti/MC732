@@ -1,0 +1,86 @@
+V1
+
+Hierarquia de memoria
+
+  - Capacidade grande
+  - velocidade alta --> tempo de acesso pequeno
+  * Os dois itens juntos são dificeis de obter
+  * Próximo ao processador as coisas devem ser pequenas e muito rápidas e Mais distante do processador são um pouco mais lentas 
+    (mas ainda assim rapidas)
+
+  - Principio de localidade
+    - Programas acessam uma pequena porção de memoria (espaço de endereçamento) a qualquer momento
+      * serve tanto para dados como para as instruções que serão executadas
+
+    * Separada em dois tipos:
+      - Localidade Temporal: itens acessados recentemente tem maior chance de serem acessados novamente em breve
+        Ex: variaveis em loops, instruções em loops
+      - Localidade espacial: itens que estão proximos a itens acessados recentemente tem maior chance de tambem serem acessados
+        Ex: dados em array, dados de instruções em sequencia
+
+  - Tudo esta armazenado em disk ou vem pela rede
+  - Traz pra (main memory ou RAM)memória tudo que estiver ativo
+  - O que for mais recentemente acessado, é carregado para memorias menores, conhecidas como Cache
+    - No RISC-V temos: registradores, onde tudo é acessado (RISC-V faz acesso atraves dos registradores, carregando tudo para eles quando
+      o processador vai executar alguma ação) 
+    - Nivel 1: o nivel mais pequeno e o mais próximo da RAM, sendo o mais rápido
+    - Nivel 2: um pouco maior, e mais lento que o nivel 1
+    - Nivel 3: maior que o dois e mais lento
+
+
+  - Blocos de dados (ou linhas de dados) são unidades (pedaços) de memoria que podem conter multiplas palavras
+  - Processador tenta acessar Cache Nivel 1, e se encontra o item, ocorre Hit que retorna o dado. Caso contrario, ocorre Miss no nivel
+    1 e tenta recuperar o dado no nivel 2, e assim sucessivamente, passando possivelmente por nivel 3, RAM e Disco em ultimo caso
+
+  - Tecnologias de memoria
+  
+    - Static RAM (SRAM): utilizada para implementar as caches de processador
+      - latencia entre 0.5ns e 2.5 ns
+      - Custa entre 2000$ a 5000$ por GB 
+      - Ocupa maior area em silicio, pouco escalavel, mas muito rapida
+    
+    - Dynamic RAM (DRAM): é a memoria principal (a RAM que compramos quando vamos compras as peças do PC)
+      - latencia entre 50ns e 70ns
+      - Custava de 20$ a 75$ por GB, hoje são entre 5$ e 10$ por GB 
+    
+    - Disco Magnetico (Disk): O disco rigido (comumente chamado de HD)
+      - latencia entre 5ms e 20ms
+      - Custo de $0.20 a $2 por GB
+
+    * Ideal: Velocidade SRAM e capacidade de Disk 
+
+  * Na DRAM, o dado (o bit) é armazenado como um capacitor carregado com energia
+    - onde um transistor é utilizado para acessar o capacitor carregado
+    - O capacitor se descarrega com o tempo e pode mudar de valor (se for 1, se tornar 0)
+      - é necessario fazer um refresh (recarga) no capacitor periodicamente
+
+    - Memoria DRAM é divida em "bancos" de memoria. Então existe um buffer que carrega uma row com varios dados continuos
+      - Isso permite ler diferentes partes dessa row sem pagar o preço de re-load (caso os dados estejam naquela row) 
+      - Obviamente carregar dados aleatorios é mais lento que carregar dados continuos
+
+    * Otimização com DDR (Double Data Rate)
+      - Faz a transferencia dos dados tanto na subida de clock como na descida de clock
+
+    * Otimização com QDR (Quad Data Rate)
+      - Alem de fazer o que DDR faz, faz entrada e saidas de formas separadas
+
+    * Desempenho é dado por:
+      - Row Buffer: leitura e atualização (refresh) de varios dados em paralelo (mesma Row)
+      - DRAM sincrona: acesso consegutivo em burst sem a necessidade de envio de cada endereço 
+        - melhora bandwidth
+
+      - DRAM banking: acesso simultaneo a multiplas DRAMs
+        - melhora bandwidth
+
+
+V2
+
+
+
+
+
+
+
+
+
+
