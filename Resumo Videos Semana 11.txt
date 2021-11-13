@@ -109,26 +109,119 @@ Hazards, forwarding junto a sinais de controle no pipeline
 
 V4
 
+  Continuação forwarding 
+
+  - forwarding só e feito se RegWrite = 1 para dada instrução
+  - e se Valor que vai para RD não é zero
+
+  * Então é feita uma unidade de forwarding que ira decidir que pega os valores da RD do quart oe quinto estagio
+    e decide atraves de multiplexadores em qual o valor que sera passado nas entradas da ALU
+
+      - forward A é o sinal que controla o mutiplexador que decide o valor passado na primeira entrada da ALU
+      - forward B é o sinal que controla o mutiplexador que decide o valor passado na segunda entrada da ALU
+      - Nos multiplexadores entram 3 valores:
+         - valroes do estagio 4 
+         - valores do estagio 5 
+         - valores do estagio 2
+
+      - forwarding Unit faz a verficação para decidir se fara forwarding ou não
+
+  MUX na ALU:
+  ForwardA para entrada RS
+  ForwardB para entrada RT
+
+  Se Forward 00: valor que entra na ALU vem do banco de registradores (estagio 2)
+  Se Forward 10: valor que entra na ALU vem do forward feito no quarto estagio
+  Se Forward 01: valor que entra na ALU vem do forward feito no quinto estagio
+
+  - Não fazer forward se RD é 0
+  - Não fazer forward se instrução não escreve em registrador
+
+  Do quarto estagio:
+
+  if ((EX/MEM.RegWrite == 1) and (EX/MEM.RegisterRD != 0) and (EX/MEM.RegisterRD == ID/EX.RegisterRS))
+    ForwardA = 10
+
+  if ((EX/MEM.RegWrite == 1) and (EX/MEM.RegisterRD != 0) and (EX/MEM.RegisterRD == ID/EX.RegisterRT))
+    ForwardB = 10
+
+  
+  Do quinto estagio:
+
+  if ((MEM/WB.RegWrite == 1) and (MEM/WB.RegisterRD != 0) and (MEM/WB.RegisterRD == ID/EX.RegisterRS) and
+    not (((EX/MEM.RegWrite == 1) and (EX/MEM.RegisterRD != 0) and (EX/MEM.RegisterRD == ID/EX.RegisterRS))))
+    ForwardA = 01
+
+  if ((MEM/WB.RegWrite == 1) and (MEM/WB.RegisterRD != 0) and (MEM/WB.RegisterRD == ID/EX.RegisterRT) and 
+    not ((EX/MEM.RegWrite == 1) and (EX/MEM.RegisterRD != 0) and (EX/MEM.RegisterRD == ID/EX.RegisterRT)))
+    ForwardB = 01
+
+  Qualquer outro caso:
+    ForwardA = ForwardB = 00
+
+  * É possivel fazer forward pra RS e RT juntos em um mesmo estagio 
 
 
 
+V5 
+
+Double data hazard 
+
+  add $1, $1, $2   --> esta no quinto estagio
+  add $1, $1, $3   --> esta no quarto estagio
+  add $1, $1, $4   --> esta no terceiro estagio
+
+  - Para o add que esta no terceiro estagio, é necessario fazer o forwarding do dado mais atualizado
+  - Então temos que revisar as condições de forwarding
+    - forwarding do quinto estagio sera feito seguinto as condições ja estabelecidas e todas as condições do quarto estagio negadas,
+      ou seja, se forwarding do quarto estagio nao for feito, entao faremos do quinto, que é o mais atual
 
 
+Load-Use Data Hazard
+
+  - Nesse caso é necessario fazer um stall
+  - precisamos detectar o stall (bolha)
+
+  condições:
+
+  if ID/EX.MemRead and ((ID/EX.RegisterRT == IF/ID.RegisterRS) or (ID/EX.RegisterRT == IF/ID.RegisterRT))
+
+  - Detecção ocorre quando load esta no estagio de execução e a instrução subsequente esta no estagio de decodificação (estagios 2 e 3)
+  - O stall é forçar os valores de controles no registrador de borda ID/EX para zero
+    EX, MEM e WB fazem então um nop (no-operation)
+  - Alem disso temos que parar o avanço das instruções, evitando a atualização de PC e do registrador IF/ID
+
+Exercicio
+
+ 1000   L1 : subi x2 , x2 , 10
+ 1004        sub  x4 , x5 , x6
+ 1008        and  x7 , x3 , x4
+ 1012        bne  x2 , zero , L1
+ 1016        or   x10 , x1 , x5
+ 1020        sw   x1 , 20( x6 )
+ 1024        add  x4 , x2 , x9
+ 1028        lw   x2 , 20( x20 )
+ 1032        addi x2 , x2 , 20
 
 
+ MEM[i] = 100 × i.
+ ri = 10 × i
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+ #    IF     ID     EX     MEM     WB    
+ 1    subi   -      -      -       -
+ 2    sub    subi   -      -       -
+ 3    and    sub    subi   -       -         x2 = 20 - 10 = 10
+ 4    bne    and    sub    subi    -         x4 = 50 - 60 = -10
+ 5    or     bne    and    sub     subi      forwarding x4 sub --> and, x7 = 30 & -10 = 30
+ 6    sw     or     bne    and     sub       x2 = 10 --> != 0, entao L1
+ 7    <>     <>     <>     bne     and       Branch no taken - no-op para as operações nao executadas
+ 8    subi   <>     <>     <>      bne
+ 9    sub    subi   <>     <>      <>
+10    and    sub    subi   <>      <>        x2 = 10 - 10 = 0
+11    bne    and    sub    subi    <>        x4 = -10 (valore de x5 e x6 nao moram modificados)
+12    or     bne    and    sub     subi      forwarding x4 sub --> and, x7 = 30 & -10 = 30  x7 = 30
+13    sw     or     bne    and     sub       sai do loop L1
+14    add    sw     or     bne     and       x10 = 10 or 50 = 111010 = 58
+15    lw     add    sw     or      bne       x1 = 
 
 
