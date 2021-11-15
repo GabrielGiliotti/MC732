@@ -75,6 +75,215 @@ Hierarquia de memoria
 
 V2
 
+Organização da banda de memoria no carregamento de dados
+
+  * Existem diferentes organizações/otimizações que podem afetar o desempenho no carregamento de dados
+
+    - Ocorreu cache miss no cache, e vamos carregar 4 palavras da memoria principal
+    - 1 ciclo é gasto para envio do endereço do dado do barramento para a memoria principal
+    - Para abrir uma coluna de dados são 15 ciclos
+    - e 1 ciclo para enviar cada palavra de dado
+  
+  - Organização 1 
+  
+    Então 1 ciclo para addr + 4 x 15 ciclos para abrir row + 4 x 1 ciclos para enviar cada palavra = 65 ciclos no total
+
+  - Organização 2: Aumentando o barramento para que consiga transitar 4 palavras em paralelo
+
+    Então 1 ciclo para addr + 15 ciclos para abrir row + 1 ciclos para enviar cada palavra = 17 ciclos no total
+
+      - o problema é que nessa organização, o barramento precisa ser 4 vezes maior
+
+  - Organização 3: Organizando a memória em bancos
+
+    Então 1 ciclo para addr + 15 ciclos para abrir row + 4 x 1 ciclos para enviar cada palavra = 20 ciclos no total
+
+      - nessa organização, as rows podem ser iniciadas em paralelo nos diferentes bancos, custando apenas 15 ciclos
+      * a organização 3 é adotada pois mantem uma eficiencia proxima ao otimo, de 17 ciclos, mas é muito mais barata pois
+        nao é necessario aumentar o barramento
+
+
+  * Memorias Flash: Armazenamento com semicondutor nao volatil
+    
+    - 100x a 1000x mais rapido que disco
+    - Menores, dissipam menor potencia e mais robustas contra choques mecanicos
+    - Porem sao mais caras que disco
+
+    - Tipo NOR 
+      
+      - Acesso write/read random
+      - usado para instruções de memoria em sistemas embarcados
+  
+    - Tipo NAND
+
+      - mais barata por GB que NOR, 
+      - usada para armazenamentos de maior capacidade como USB, armazenamento de midia
+      - mais densa, e acesso em tempo de execução aos blocos de dados
+
+    * Ambas sofrem problema de wear out - blocos da memoria ficam ineficaz apos varias escritas e leituras (milhoes)
+      - para tratar isso, o controlador re-escreve os dados em blocos diferentes para ir gastando a memoria por igual e 
+        atrasar a perda dos blocos de dados com o tempo de uso
+
+  * Armazenamennto Disco
+
+    - Discos divididos em faixas, e faixas divididas em setores para armazenar os dados 
+
+    - Cada setor armazena:
+
+      - ID para ser identificado
+      - Dados (512 bytes, 4096 bytes propostos)
+      - Codigo de correção de erros
+      - Campos de sincronização e lacunas (espaços)
+
+    - Acessar um setor envolve:
+
+      - Delay de espera em uma fila para que o comando seja executado na sua vez
+      - Buscar: mover a agulha para posição certa de faixa no disco 
+      - demora para rotação do disco ate a posição correta na faixa
+      - transferencia dos dados
+      - e overhead de controle para estrutura funcionar
+
+    * aprox 13:20 exemplo de accesso ao disco
+
+    - Problemas de performance do disco
+
+      - o indicado na compra é o tempo medio
+      - principio de localidade e scheduling do sistema operacional pode levar a um tempo de busca menor ou maior
+      - tambem inclui caches, fazendo prefetch dos setores e antecipação do acesso
+        - tenta evitar o delay do tempo de busca e rotação
+
+
+V3
+
+Memoria Cache
+
+  - Load/store primeiro na cache, demois na memoria principal
+  - Como saber se o dado esta na cache ?
+  - Onde ele vai estar na cache ?
+
+  * Direct Mapped Cache
+
+    - Uma posição de memoria, um endereço de memoria pode ir para um e somente um endereço na cache
+      - o endereço da memoria é mapeado para um determinado endereço na cache, fazendo resto da divisao
+        Ex: Endereço 1 memoria % numero de espaços cache (no exemplo 8) = 1
+            Endereço 9 % 8 = 1 --> ambos endereços 1 e 9 da memoria sao mapeados para endereço 1 da cache
+
+      - De forma geral os bits menos significativos da memoria indicam a posição na memoria cache
+
+
+    - Como saber qual bloco de memoria esta armazenado em um bloco de cache (dado que um bloco na cache armazena diferentes blocos de 
+      memoria)
+
+      - Cada bloco da cache tem um identificador - Tag (Bits mais significativos do endereço de memoria formam tag)
+      - Alem disso, existe um bit de validação para indicar que um dado esta armazenado 
+      - Exemplo a partir aprox 6:00
+
+    Endereço da cache é dividido:
+
+      - offset (de acordo com numero de palavras para escolher - 4 palavras = 2^2 escolhas --> 2 bits)
+      - indice da cache (depende do tamanho da cache - se cache tem 1024 posições, entao 10 bits sao necessarios --> 2^10 = 1024)
+      - Tag (parte alta que resta do endereço)
+
+      * Se tag endereço memoria == tag endereço block cache e bit true, então Hit
+        Caso contrário, Miss
+
+    Exemplo Larger Block Size (armazenar mais de uma palavra por bloco) Aprox 12:35
+
+      * A capacidade da memoria RAM/Cache é dado pelo numero de blocos que ela contem e numero de bytes de cada bloco 
+        - 64 blocos x 16 bytes = 1024 --> 1 GB RAM
+
+      - Considerações
+
+        - Blocos maiores diminuem a taxa de Miss (aumenta Hit)
+        - Porem se a cache tem tamanho fixo, existem maior conflito para armazenar blocos maiores
+          - Então existe trade off entre a cache ter tamanho fixo e o tamanho do bloco que vamos armazenar
+          - Aumenta poluição na cache
+    
+    Cache Misses
+
+      - Stall no pipeline (inserir bolhas ate o dado chegar)
+      - Para a memoria de instruções, o Fetch é refeito para a instrução
+      - Para a memoria de dados, é feito stall ate o acesso termine
+
+
+V4 
+
+Exemplo Mapeamento Memoria RAM para Cache
+
+  Tamanho total: 32 bytes
+  Tamanho do bloco: 4 bytes
+
+  Numero de blocos: 8
+
+  Bits de Indice: 3 (acesso ao bloco)
+  Bits de Offset: 2 (acesso dentro do bloco)
+
+  Bits de Tag: 27
+
+  Endereço: 0  0000000000000000000000
+  Tag:      0  0000000000000000000000
+  Bloco:    0                     000
+  Offset:   0                      00
+
+  Inicialmente (word) MEM[i] = i * 10
+
+
+  V                  Tag                   Idx                  Off                 Dados
+
+
+
+
+                     Address               M/M
+
+
+V5 (Primeiro Exemplo)
+
+  Tamanho total: 16 bytes
+  Tamanho do bloco: 4 bytes
+
+  Numero de blocos: 4
+
+  Bits de Indice: 2 (acesso ao bloco)
+  Bits de Offset: 2 (acesso dentro do bloco)
+
+  Bits de Tag: 28
+
+  Endereço: 88  0000000000000000001101
+  Tag:      0   0000000000000000000000
+  Bloco:    1                       11
+  Offset:   0                       01
+
+  Inicialmente (word) MEM[i] = i * 10
+
+
+  V                  Tag                   Idx    Off                 Dados
+  1                  5                     0      x                   800
+  1                  0                     1      x                   40
+  1                  5                     2      x                   880
+  1                  0                     3      x                   130
+
+
+                     Address             Hit/Miss
+                      4                     M
+                     32                     M
+                     80                     M
+                     80                     H
+                      4                     H
+                     88                     M
+                     13                     M
+
+
+  * Bits menos significativos acessam uma posição dentro de uma palavra de dados
+  * Os proximos bits determinam os indices
+  * E os bits mais significativos determinam a tag que determina o bloco em que a palavra sera mapeada
+
+
+V6
+
+
+
+
+
 
 
 
