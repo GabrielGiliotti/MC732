@@ -278,18 +278,49 @@ V5 (Primeiro Exemplo)
   * E os bits mais significativos determinam a tag que determina o bloco em que a palavra sera mapeada
 
 
-V6
+V6 - V7 - V8 - V9 Skip (final de semestre + preguicinha)
+
+Exercicio
+
+ - Cache tem 256 bytes para dados: Tamanho total 256
+ - blocos de 32 bytes --> 256/32 = 8 blocos
+ - 8 blocos 
+   --> 3 bits indice para acessar todos os blocos
+ 
+ - se bloco tem 1 palavra = 4 bytes
+ - se bloco tem 2 palavras = 8 bytes
+ ..
+ - se bloco tem 8 palavras = 32 bytes
+ - 32 / 8 = 4 bytes por palavra
+   - 3 bits de offset para acessar cada palavra dentro de 1 bloco   
+
+ Portanto: cada palavra tem 4 bytes
+           Cada bloco tem 8 palavras, offset 3 bits
+           Cache contem 8 blocos, indice 3 bits para acessar todos os blocos
+           Tag = 32 - 3 - 3 = 26 bits
+  
+
+  - Cache ainda com 256 bytes 
+  - blocos de 8 bytes (2 palavras) --> 256/8 = 32
+  - 32 blocos 
+    --> 5 bits indice para acessar todos os blocos
+
+  - Bloco tem 2 palavras = 8 bytes
+  - 8 / 2 = 4 bytes por palavra
+    - 2 bits de offset para acessar cada palavra dentro de 1 bloco
 
 
+  - Cache ainda com 256 bytes
+  - blocos de 64 bytes (16 palavras) --> 256/64 = 4
+  - 4 blocos
+    --> 2 bits indice para acessar todos os blocos
+
+  - Bloco tem 16 palavras = 64 bytes
+  - 64 / 16 = 4 bytes por palavra 
+    - 4 bits de offset para acessar cada palavra dentro de 1 bloco
 
 
-
-
-
-
-
-
-
-
-
-
+  - Cache ainda com 256 bytes
+  - blocos de 16 bytes (4 palavras) --> 256/16 = 16
+  - 16 blocos
+    --> 4 bits de indice para acessar todos os blocos
